@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Module: raydiansyah.com sitemap | Purpose: Declare public URLs for crawlers | Used by: Search engines at /sitemap.xml | Dependencies: Public static routes | Public functions: None | Side effects: None -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://raydiansyah.com/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url>
+</urlset>
