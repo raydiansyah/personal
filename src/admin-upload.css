@@ -1,9 +1,10 @@
 /**
  * Module: Admin upload feedback styles
- * Purpose: Make slide upload progress and disabled states visible
- * Used by: src/admin.tsx upload form
+ * Purpose: Make admin upload feedback, portfolio filters, and data tables usable
+ * Used by: src/admin.tsx
  * Dependencies: Existing admin form classes and design tokens
  * Public functions: None
  * Side effects: None; presentation-only CSS
  */
 .upload-progress{display:grid;gap:7px;color:#d3f36b;font-size:.8rem}.upload-progress progress{width:100%;height:8px;accent-color:#d3f36b}.form button:disabled{cursor:wait;opacity:.65}.site-version{color:#8f8b83;font-variant-numeric:tabular-nums}
+.admin-table-card{grid-column:1/-1}.admin-table-card .section-heading{align-items:center;margin-bottom:18px;gap:18px}.admin-table-card h3{margin:8px 0 0}.admin-filters{display:flex;gap:8px;align-items:center}.admin-filters input,.admin-filters select{min-width:150px;border:1px solid #ffffff20;border-radius:10px;padding:10px 12px;color:#fff;background:#ffffff09}.admin-table-wrap{overflow-x:auto}.admin-table{width:100%;border-collapse:collapse;font-size:.8rem}.admin-table th,.admin-table td{padding:12px 10px;border-bottom:1px solid #ffffff19;text-align:left;vertical-align:middle}.admin-table th{color:#aaa59b;font:10px var(--mono);text-transform:uppercase}.admin-table td:first-child{width:150px}.admin-table .portfolio-preview{width:130px;height:74px;margin:0}.admin-table .portfolio-preview-label{font-size:7px;padding:3px 5px}@media(max-width:760px){.admin-table-card .section-heading{display:block}.admin-filters{margin-top:14px;display:grid;grid-template-columns:1fr 1fr}.admin-filters input,.admin-filters select{min-width:0;width:100%}}
