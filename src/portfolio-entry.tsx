@@ -9,9 +9,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { listPortfolio, listPortfolioCategories, type Portfolio, type PortfolioCategoryOption } from './lib/portfolio';
+import { PortfolioPreview } from './components/portfolio-preview';
 
 function PortfolioCard({ item }: { item: Portfolio }) {
-  return <article className="work-card"><div className="work-image" style={item.url_gambar ? { backgroundImage: `url(${item.url_gambar})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}><span className="project-tag">{item.kategori} · {item.durasi ?? 'Selected work'}</span>{!item.url_gambar && <span className="image-word">{item.judul.slice(0, 8).toUpperCase()}</span>}</div><div className="work-meta"><h3>{item.judul}</h3><p>{item.ringkasan}</p>{item.url_demo ? <a href={item.url_demo} target="_blank" rel="noreferrer" aria-label={`Buka demo ${item.judul}`}>↗</a> : <span aria-hidden="true">↗</span>}</div></article>;
+  return <article className="work-card"><PortfolioPreview title={item.judul} demoUrl={item.url_demo} coverUrl={item.url_gambar} /><div className="work-meta"><span className="project-tag">{item.kategori} · {item.durasi ?? 'Selected work'}</span><h3>{item.judul}</h3><p>{item.ringkasan}</p>{item.url_demo ? <a href={item.url_demo} target="_blank" rel="noreferrer" aria-label={`Buka demo ${item.judul}`}>↗</a> : <span aria-hidden="true">↗</span>}</div></article>;
 }
 
 export function PortfolioDataIsland() {

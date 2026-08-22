@@ -1,9 +1,10 @@
 /*
   Module: raydiansyah.com extended portfolio visuals
-  Purpose: Give the ten-project portfolio grid distinct, lightweight visual treatments without image dependencies
-  Used by: index.html portfolio cards
-  Dependencies: styles.css portfolio card class names
-  Public functions: Extra project color and type treatments
+  Purpose: Give portfolio cards distinct visual treatments and style live/cover previews
+  Used by: React landing page and admin portfolio cards
+  Dependencies: styles.css, portfolio card class names, PortfolioPreview component
+  Public functions: Extra project color/type treatments and preview presentation
   Side effects: None; static presentation rules
 */
 .image-sora{background:#c6d8d2}.sora-type{font:700 62px/.74 var(--sans);letter-spacing:-.1em}.sora-type i{font:22px var(--serif);font-weight:400;letter-spacing:0;margin-left:48px}.image-tumbuh{background:#d9c3a7}.tumbuh-type{font-size:46px;font-weight:800;letter-spacing:-.08em}.tumbuh-type span{color:var(--coral);font-family:var(--serif);font-style:italic}.image-kala{background:#b3a994}.kala-type{font:700 72px var(--mono);letter-spacing:-.12em}.image-ruang{background:#d8c5d7}.ruang-type{font:700 54px/.74 var(--sans);letter-spacing:-.1em}.ruang-type i{font:22px var(--serif);font-weight:400;letter-spacing:0;margin-left:47px}.image-laju{background:#c5d7ec}.laju-type{font:700 55px/.72 var(--mono);letter-spacing:-.14em}.laju-type i{font:18px var(--serif);font-weight:400;letter-spacing:0;margin-left:64px}.image-selaras{background:#e5bf86}.selaras-type{font:700 53px var(--sans);letter-spacing:-.1em}
+.portfolio-preview{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--soft-surface);color:var(--muted)}.portfolio-preview iframe{display:block;width:100%;height:100%;border:0;background:#fff}.portfolio-preview-label{position:absolute;right:10px;bottom:10px;padding:4px 7px;background:color-mix(in srgb,var(--paper) 86%,transparent);color:var(--ink);font:9px var(--mono);text-transform:uppercase}.portfolio-preview-empty{display:grid;place-items:center;font:700 24px var(--mono);letter-spacing:-.08em}.work-card .portfolio-preview{height:320px;border:0;border-radius:0}.work-card .portfolio-preview-label{top:12px;bottom:auto}.card .portfolio-preview{margin-bottom:12px}

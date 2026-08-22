@@ -3,17 +3,17 @@
  * Purpose: Provide authenticated Supabase operations for content management and inbox review
  * Used by: src/admin.tsx
  * Dependencies: Supabase browser client for metadata/Auth; Cloudflare R2 presign endpoint for file bytes
- * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), listOwnerPortfolio(), createPortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), listSlides(), slugify(), uploadSlide(), listContactMessages()
+ * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), listOwnerPortfolio(), createPortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), listSlides(), slugify(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
  * Side effects: Auth session persistence, authenticated database reads/writes, and HTTP uploads with progress callbacks
  */
 import { getSupabaseClient } from './supabase';
 import type { Portfolio } from './portfolio';
 
-export async function signInOwner(email: string, password: string) { return getSupabaseClient().auth.signInWithPassword({ email, password }); }
+export async function signInOwner(email: string, password: string, captchaToken: string) { return getSupabaseClient().auth.signInWithPassword({ email, password, options: { captchaToken } }); }
 export async function signOutOwner() { return getSupabaseClient().auth.signOut(); }
 export async function getOwnerSession() { return getSupabaseClient().auth.getSession(); }
-export async function listOwnerPortfolio(): Promise<Portfolio[]> { const { data, error } = await getSupabaseClient().from('portofolio').select('id, judul, slug, kategori, ringkasan, url_gambar').order('tanggal', { ascending: false }); if (error) throw error; return data as Portfolio[]; }
-export async function createPortfolio(input: Pick<Portfolio, 'judul' | 'slug' | 'kategori' | 'ringkasan'>) { const { data: { user } } = await getSupabaseClient().auth.getUser(); if (!user) throw new Error('Owner session required'); const { error } = await getSupabaseClient().from('portofolio').insert({ ...input, created_by: user.id }); if (error) throw error; }
+export async function listOwnerPortfolio(): Promise<Portfolio[]> { const { data, error } = await getSupabaseClient().from('portofolio').select('id, judul, slug, kategori, ringkasan, url_gambar, url_demo').order('tanggal', { ascending: false }); if (error) throw error; return data as Portfolio[]; }
+export async function createPortfolio(input: Pick<Portfolio, 'judul' | 'slug' | 'kategori' | 'ringkasan' | 'url_gambar' | 'url_demo'>) { const { data: { user } } = await getSupabaseClient().auth.getUser(); if (!user) throw new Error('Owner session required'); const { error } = await getSupabaseClient().from('portofolio').insert({ ...input, created_by: user.id }); if (error) throw error; }
 export async function deletePortfolio(id: string) { const { error } = await getSupabaseClient().from('portofolio').update({ status_tampil: false }).eq('id', id); if (error) throw error; }
 export type Testimonial = { id: string; nama: string; jabatan: string | null; kutipan: string; status_tampil: boolean };
 export async function listTestimonials(): Promise<Testimonial[]> { const { data, error } = await getSupabaseClient().from('testimoni').select('id, nama, jabatan, kutipan, status_tampil').order('tanggal', { ascending: false }); if (error) throw error; return data ?? []; }
@@ -58,5 +58,19 @@ export async function uploadSlide(file: File, judul: string, slug: string, onPro
   onProgress?.({ phase: 'saving', percent: 100 });
   const inserted = await supabase.from('slide_presentasi').insert({ judul: judul.trim(), slug: normalizedSlug, storage_path: key, mime_type: file.type, created_by: user.id });
   if (inserted.error) throw new Error(`File sudah terupload, tetapi metadata gagal disimpan: ${inserted.error.message}`);
+}
+export async function uploadPortfolioCover(file: File, slug: string): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('Cover harus berupa gambar.');
+  if (file.size > 5 * 1024 * 1024) throw new Error('Ukuran cover maksimal 5MB.');
+  const supabase = getSupabaseClient(); const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Owner session required.');
+  const endpoint = import.meta.env.VITE_R2_UPLOAD_ENDPOINT; const baseUrl = import.meta.env.VITE_R2_PUBLIC_BASE_URL;
+  if (!endpoint || !baseUrl) throw new Error('Konfigurasi upload cover belum tersedia.');
+  const normalizedSlug = slugify(slug) || 'portfolio';
+  const response = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` }, body: JSON.stringify({ filename: file.name, contentType: file.type, slug: `${normalizedSlug}-cover` }) });
+  if (!response.ok) throw new Error(`Gagal menyiapkan cover (HTTP ${response.status}).`);
+  const { url, key } = await response.json() as { url: string; key: string };
+  await uploadToR2(url, file);
+  return `${baseUrl.replace(/\/$/, '')}/${key}`;
 }
 export async function listContactMessages() { const { data, error } = await getSupabaseClient().from('pesan_kontak').select('id, nama, email, status, dibuat_pada').order('dibuat_pada', { ascending: false }); if (error) throw error; return data ?? []; }
