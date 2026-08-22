@@ -1,6 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [{ "source": "/app", "destination": "/app.html" }],
+  "rewrites": [
+    { "source": "/app", "destination": "/app.html" },
+    { "source": "/s/:slug", "destination": "/app.html" },
+    { "source": "/portfolio", "destination": "/app.html" },
+    { "source": "/portfolio/:slug", "destination": "/app.html" },
+    { "source": "/about", "destination": "/app.html" },
+    { "source": "/services", "destination": "/app.html" },
+    { "source": "/contact", "destination": "/app.html" }
+  ],
   "headers": [
     {
       "source": "/(.*\\.(?:css|js|svg|ico))",

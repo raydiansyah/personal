@@ -17,6 +17,12 @@ import { PortfolioDetailPage, PortfolioPage } from './pages/portfolio-pages';
 import { ServicesPage } from './pages/services-page';
 import { SlidePage } from './pages/slide-page';
 import './app.css';
+import '../styles.css';
+import '../a11y.css';
+import '../motion.css';
+import '../portfolio.css';
+import '../conversion.css';
+import '../promotions.css';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 1 } } });
 const rootRoute = createRootRoute({ component: SiteShell });

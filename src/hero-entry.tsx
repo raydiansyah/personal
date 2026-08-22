@@ -1,16 +1,15 @@
 /**
  * Module: Interactive landing hero
  * Purpose: Provide a responsive, pointer-aware hero animation using Framer Motion
- * Used by: index.html #hero-motion-root
+ * Used by: React homepage route /
  * Dependencies: React, framer-motion, landing page CSS
  * Public functions: InteractiveHero()
  * Side effects: Mounts a React island and responds to pointer movement; no network calls
  */
-import { createRoot } from 'react-dom/client';
 import { MotionConfig, motion, useReducedMotion, useSpring } from 'framer-motion';
 import { useCallback, type PointerEvent } from 'react';
 
-function InteractiveHero() {
+export function InteractiveHero() {
   const reduceMotion = useReducedMotion();
   const tiltX = useSpring(0, { stiffness: 140, damping: 20, mass: 0.7 });
   const tiltY = useSpring(0, { stiffness: 140, damping: 20, mass: 0.7 });
@@ -42,6 +41,3 @@ function InteractiveHero() {
     </motion.div>
   </MotionConfig>;
 }
-
-const root = document.getElementById('hero-motion-root');
-if (root) createRoot(root).render(<InteractiveHero />);

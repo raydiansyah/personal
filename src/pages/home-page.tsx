@@ -1,12 +1,30 @@
 /**
- * Module: Homepage page
- * Purpose: Present the studio proposition, approach, selected work, testimonial, and CTAs
+ * Module: React homepage
+ * Purpose: Render the complete portfolio landing experience from React components
  * Used by: TanStack route /
- * Dependencies: Shared site components and TanStack links
+ * Dependencies: Framer Motion hero, TanStack Query portfolio, Supabase contact form
  * Public functions: HomePage()
- * Side effects: Client-side navigation only
+ * Side effects: Reads published portfolio data and submits contact inquiries through an Edge Function
  */
 import { Link } from '@tanstack/react-router';
-import { Feature, ProjectCard } from '../components/site-shell';
+import { ContactFormIsland } from '../contact-entry';
+import { PromotionStrip } from '../components/promotion-strip';
+import { InteractiveHero } from '../hero-entry';
+import { PortfolioDataIsland } from '../portfolio-entry';
 
-export function HomePage() { return <><section className="page hero"><div><p className="eyebrow">Independent digital studio · Indonesia</p><h1>Digital products with <em>point of view.</em></h1><p className="lede">Saya Suprayogo — membantu bisnis yang sedang tumbuh mengubah ide kompleks menjadi pengalaman digital yang terasa jelas, cepat, dan berkesan.</p><div className="actions"><Link className="button primary" to="/contact">Mulai percakapan ↗</Link><Link className="button" to="/portfolio">Lihat selected work</Link></div></div><div className="orb" aria-label="Bentuk animasi dekoratif" role="img" /></section><section className="page section"><div className="section-heading"><div><p className="eyebrow">The approach</p><h2>Clarity creates momentum.</h2></div><p className="muted">Strategi · Design · Build</p></div><div className="grid"><Feature number="01" title="Find the signal" text="Kita merapikan problem dan menemukan satu arah yang bisa digerakkan." /><Feature number="02" title="Make it felt" text="Visual, interaction, dan copy bekerja sebagai satu pengalaman yang utuh." /><Feature number="03" title="Ship with intent" text="Teknologi dipilih untuk membuat produk mudah dirawat dan siap bertumbuh." /></div></section><section className="page section"><div className="section-heading"><div><p className="eyebrow">Selected work</p><h2>Small list. Strong signal.</h2></div><Link className="button" to="/portfolio">Explore all ↗</Link></div><div className="grid"><ProjectCard title="Karsa Studio" type="Company profile" text="A digital home for a creative practice." slug="karsa-studio" /><ProjectCard title="Nusa Commerce" type="Web application" text="A calmer way to read commerce momentum." slug="nusa-commerce" /><ProjectCard title="Ruang Rumah" type="Website" text="Warm digital presence for an interior brand." slug="ruang-rumah" /></div></section><section className="page section"><p className="eyebrow">Client note</p><h2>“It finally feels like us.”</h2><p className="lede">Bukan sekadar terlihat bagus — pengalaman digitalnya memberi tim kami bahasa yang sama untuk tumbuh.</p><p className="muted">— Founder, Karsa Studio</p></section></>; }
+const experience = [
+  ['NOW', 'Independent digital studio', 'Membangun website, aplikasi web, dan sistem digital untuk bisnis yang sedang bertumbuh.', 'React · TypeScript · Supabase'],
+  ['2021—24', 'Product & web development', 'Menerjemahkan kebutuhan bisnis menjadi produk yang jelas, mudah dipakai, dan siap dikembangkan.', 'TanStack · Node.js · Laravel'],
+  ['EARLIER', 'Designing useful systems', 'Membangun fondasi visual, alur kerja, dan pengalaman digital dengan perhatian pada detail.', 'UX · UI · Python'],
+] as const;
+
+export function HomePage() {
+  return <>
+    <section className="hero section-wrap" aria-label="Perkenalan raydiansyah.com"><InteractiveHero /></section>
+    <section className="section-wrap section" id="work"><div className="section-heading"><div><p className="eyebrow">01 / Selected work</p><h2>Work that moves<br /><em>business forward.</em></h2></div><p className="section-note">Portfolio dibaca langsung dari backend—filter dan pencarian tanpa reload.</p></div><PortfolioDataIsland /></section>
+    <section className="section-wrap compact-about" id="about"><p className="eyebrow">02 / About</p><div><h2>Clarity first.<br /><em>Craft always.</em></h2><p>Saya membantu bisnis menerjemahkan ide yang kompleks menjadi pengalaman digital yang terasa sederhana, relevan, dan siap berkembang.</p><Link className="text-link" to="/about">Lihat profil <span>↗</span></Link></div></section>
+    <section className="section-wrap experience-section" id="experience"><div className="section-heading"><div><p className="eyebrow">03 / Experience</p><h2>Built across<br /><em>the stack.</em></h2></div><p className="section-note">Pengalaman yang menghubungkan product thinking, interface design, dan engineering.</p></div><div className="experience-list">{experience.map(([year, title, text, stack]) => <article key={year}><span className="experience-year">{year}</span><div><h3>{title}</h3><p>{text}</p></div><span className="experience-stack">{stack}</span></article>)}</div></section>
+    <section className="section-wrap"><PromotionStrip /></section>
+    <section className="contact-section" id="contact"><div className="section-wrap contact-inner"><div><p className="eyebrow">04 / Start a project</p><h2>Build something<br /><em>worth finding.</em></h2><p className="contact-copy">Form ini tersimpan ke Supabase dan mengirim notifikasi melalui Edge Function.</p><a className="button button-light" href="https://wa.me/6287852600073?text=Halo%20raydiansyah.com%2C%20saya%20ingin%20konsultasi%20project." target="_blank" rel="noreferrer">Chat via WhatsApp <span>↗</span></a></div><ContactFormIsland /></div></section>
+  </>;
+}
