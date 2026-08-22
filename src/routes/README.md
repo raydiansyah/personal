@@ -18,4 +18,4 @@
 - `components/` — shared shell and reusable cards.
 - `pages/` — one module per public page or related route pair.
 - `lib/` — Supabase clients and domain data services.
-- `admin.tsx` — separate owner dashboard entry mounted by `admin.html`.
+- `admin.tsx` — authenticated owner dashboard mounted by `/auth/login` and `/admin` routes.

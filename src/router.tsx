@@ -11,6 +11,7 @@ import { createRootRoute, createRoute, createRouter, RouterProvider } from '@tan
 import { createRoot } from 'react-dom/client';
 import { SiteShell } from './components/site-shell';
 import { AboutPage } from './pages/about-page';
+import { AdminApp } from './admin';
 import { ContactPage } from './pages/contact-page';
 import { HomePage } from './pages/home-page';
 import { PortfolioDetailPage, PortfolioPage } from './pages/portfolio-pages';
@@ -33,7 +34,9 @@ const portfolioDetailRoute = createRoute({ getParentRoute: () => rootRoute, path
 const servicesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/services', component: ServicesPage });
 const contactRoute = createRoute({ getParentRoute: () => rootRoute, path: '/contact', component: ContactPage });
 const slideRoute = createRoute({ getParentRoute: () => rootRoute, path: '/s/$slug', component: SlidePage });
-const routeTree = rootRoute.addChildren([indexRoute, aboutRoute, portfolioRoute, portfolioDetailRoute, servicesRoute, contactRoute, slideRoute]);
+const authLoginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/auth/login', component: AdminApp });
+const adminRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin', component: AdminApp });
+const routeTree = rootRoute.addChildren([indexRoute, aboutRoute, portfolioRoute, portfolioDetailRoute, servicesRoute, contactRoute, slideRoute, authLoginRoute, adminRoute]);
 export const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent', scrollRestoration: true });
 declare module '@tanstack/react-router' { interface Register { router: typeof router } }
 export function AppRouter() { return <QueryClientProvider client={queryClient}><RouterProvider router={router} /></QueryClientProvider>; }
