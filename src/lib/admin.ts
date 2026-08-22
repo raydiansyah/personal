@@ -3,7 +3,7 @@
  * Purpose: Provide authenticated Supabase operations for content management and inbox review
  * Used by: src/admin.tsx
  * Dependencies: Supabase browser client for metadata/Auth; Cloudflare R2 presign endpoint for file bytes
- * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), listOwnerPortfolio(), createPortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), listSlides(), slugify(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
+ * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), updateOwnerProfile(), listOwnerPortfolio(), createPortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), listSlides(), listOwnerExperience(), createExperience(), updateExperience(), deleteExperience(), slugify(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
  * Side effects: Auth session persistence, authenticated database reads/writes, and HTTP uploads with progress callbacks
  */
 import { getSupabaseClient } from './supabase';
@@ -12,6 +12,7 @@ import type { Portfolio } from './portfolio';
 export async function signInOwner(email: string, password: string, captchaToken: string) { return getSupabaseClient().auth.signInWithPassword({ email, password, options: { captchaToken } }); }
 export async function signOutOwner() { return getSupabaseClient().auth.signOut(); }
 export async function getOwnerSession() { return getSupabaseClient().auth.getSession(); }
+export async function updateOwnerProfile(input: { email: string; name: string; password?: string }) { const updates: { email?: string; password?: string; data?: { name: string } } = { email: input.email.trim(), data: { name: input.name.trim() } }; if (input.password?.trim()) updates.password = input.password.trim(); const { error } = await getSupabaseClient().auth.updateUser(updates); if (error) throw error; }
 export async function listOwnerPortfolio(): Promise<Portfolio[]> { const { data, error } = await getSupabaseClient().from('portofolio').select('id, judul, slug, kategori, ringkasan, url_gambar, url_demo').order('tanggal', { ascending: false }); if (error) throw error; return data as Portfolio[]; }
 export async function createPortfolio(input: Pick<Portfolio, 'judul' | 'slug' | 'kategori' | 'ringkasan' | 'url_gambar' | 'url_demo'>) { const { data: { user } } = await getSupabaseClient().auth.getUser(); if (!user) throw new Error('Owner session required'); const { error } = await getSupabaseClient().from('portofolio').insert({ ...input, created_by: user.id }); if (error) throw error; }
 export async function deletePortfolio(id: string) { const { error } = await getSupabaseClient().from('portofolio').update({ status_tampil: false }).eq('id', id); if (error) throw error; }
@@ -20,6 +21,11 @@ export async function listTestimonials(): Promise<Testimonial[]> { const { data,
 export async function createTestimonial(input: Pick<Testimonial, 'nama' | 'jabatan' | 'kutipan'>) { const { data: { user } } = await getSupabaseClient().auth.getUser(); if (!user) throw new Error('Owner session required'); const { error } = await getSupabaseClient().from('testimoni').insert({ ...input, created_by: user.id }); if (error) throw error; }
 export type Slide = { id: string; judul: string; slug: string; mime_type: string; storage_path: string };
 export async function listSlides(): Promise<Slide[]> { const { data, error } = await getSupabaseClient().from('slide_presentasi').select('id, judul, slug, mime_type, storage_path').order('dibuat_pada', { ascending: false }); if (error) throw error; return data ?? []; }
+export type Experience = { id: string; periode: string; judul: string; ringkasan: string; stack: string; urutan: number; status_tampil: boolean };
+export async function listOwnerExperience(): Promise<Experience[]> { const { data, error } = await getSupabaseClient().from('pengalaman').select('id, periode, judul, ringkasan, stack, urutan, status_tampil').order('urutan', { ascending: true }).order('dibuat_pada', { ascending: true }); if (error) throw error; return data ?? []; }
+export async function createExperience(input: Pick<Experience, 'periode' | 'judul' | 'ringkasan' | 'stack' | 'urutan'>) { const { data: { user } } = await getSupabaseClient().auth.getUser(); if (!user) throw new Error('Owner session required'); const { error } = await getSupabaseClient().from('pengalaman').insert(input); if (error) throw error; }
+export async function updateExperience(id: string, input: Partial<Pick<Experience, 'periode' | 'judul' | 'ringkasan' | 'stack' | 'urutan' | 'status_tampil'>>) { const { error } = await getSupabaseClient().from('pengalaman').update({ ...input, diperbarui_pada: new Date().toISOString() }).eq('id', id); if (error) throw error; }
+export async function deleteExperience(id: string) { return updateExperience(id, { status_tampil: false }); }
 export type UploadProgress = { phase: 'preparing' | 'uploading' | 'saving'; percent: number };
 const MAX_SLIDE_SIZE = 10 * 1024 * 1024;
 

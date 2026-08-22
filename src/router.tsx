@@ -45,9 +45,10 @@ const dashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/da
 const dashboardPortfolioRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/portfolio', component: DashboardApp });
 const dashboardPortfolioTypoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/portofoio', component: DashboardApp });
 const dashboardSlideRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/slide', component: DashboardApp });
+const dashboardExperienceRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/experience', component: DashboardApp });
 const dashboardTestimonialsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/testimonials', component: DashboardApp });
 const dashboardMessagesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/messages', component: DashboardApp });
-const routeTree = rootRoute.addChildren([indexRoute, aboutRoute, portfolioRoute, portfolioDetailRoute, servicesRoute, contactRoute, slideRoute, authLoginRoute, adminRoute, dashboardRoute, dashboardPortfolioRoute, dashboardPortfolioTypoRoute, dashboardSlideRoute, dashboardTestimonialsRoute, dashboardMessagesRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, aboutRoute, portfolioRoute, portfolioDetailRoute, servicesRoute, contactRoute, slideRoute, authLoginRoute, adminRoute, dashboardRoute, dashboardPortfolioRoute, dashboardPortfolioTypoRoute, dashboardSlideRoute, dashboardExperienceRoute, dashboardTestimonialsRoute, dashboardMessagesRoute]);
 export const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent', scrollRestoration: true });
 declare module '@tanstack/react-router' { interface Register { router: typeof router } }
 export function AppRouter() { return <QueryClientProvider client={queryClient}><LanguageProvider><RouterProvider router={router} /></LanguageProvider></QueryClientProvider>; }

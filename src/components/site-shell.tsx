@@ -4,7 +4,7 @@
  * Used by: TanStack public, auth, and admin routes
  * Dependencies: React, TanStack Router, language preference, analytics helper, brand submark asset, landing design tokens
  * Public functions: SiteShell(), Feature(), ProjectCard(), BrandLogo()
- * Side effects: Persists theme and analytics consent preferences, conditionally loads analytics, listens to scroll state, and performs client-side navigation
+ * Side effects: Persists theme and analytics consent preferences, synchronizes theme changes from dashboard, conditionally loads analytics, listens to scroll state, and performs client-side navigation
  */
 import { Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
@@ -24,6 +24,12 @@ export function SiteShell() {
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     window.localStorage.setItem('raydiansyah-theme', dark ? 'dark' : 'light');
   }, [dark]);
+
+  useEffect(() => {
+    const syncTheme = (event: Event) => { const value = (event as CustomEvent<'dark' | 'light'>).detail; if (value === 'dark' || value === 'light') setDark(value === 'dark'); };
+    window.addEventListener('raydiansyah-theme-change', syncTheme);
+    return () => window.removeEventListener('raydiansyah-theme-change', syncTheme);
+  }, []);
 
   useEffect(() => {
     if (analyticsConsent === 'granted') initAnalytics();

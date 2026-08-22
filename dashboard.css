@@ -16,3 +16,24 @@
 .dashboard-brand-mark img{width:25px;height:25px;object-fit:contain}
 .dashboard-avatar{overflow:hidden}
 .dashboard-avatar img{width:24px;height:24px;object-fit:contain}
+main#main-content.dashboard-route{padding-top:0}
+.dashboard-theme-toggle{display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--muted);font:700 10px var(--mono);cursor:pointer}
+.dashboard-theme-toggle:hover{border-color:var(--acid);color:var(--ink)}
+.dashboard-theme-toggle .dashboard-icon{width:15px;height:15px}
+.dashboard-profile-menu{position:relative}
+.dashboard-profile-trigger{padding:4px 8px 4px 4px;color:var(--ink)}
+.dashboard-profile-trigger:hover{transform:none;background:color-mix(in srgb,var(--ink) 7%,transparent)}
+.dashboard-profile-trigger>.dashboard-icon{width:14px;height:14px;transform:rotate(90deg);color:var(--muted)}
+.dashboard-profile-popover{position:absolute;top:calc(100% + 12px);right:0;z-index:40;width:min(340px,calc(100vw - 32px));padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--dashboard-surface);box-shadow:0 20px 50px color-mix(in srgb,var(--ink) 18%,transparent)}
+.dashboard-profile-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;font-size:14px}
+.dashboard-profile-heading button{width:32px;height:32px;border:0;background:transparent;color:var(--muted);font-size:22px;cursor:pointer}
+.dashboard-profile-form,.dashboard-inline-form{display:grid;gap:12px}
+.dashboard-profile-form label,.dashboard-inline-form label{display:grid;gap:6px;color:var(--muted);font:10px var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.dashboard-profile-form input,.dashboard-inline-form input,.dashboard-inline-form textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--paper);color:var(--ink);font:13px var(--sans);text-transform:none;letter-spacing:normal}
+.dashboard-inline-form textarea{min-height:92px;resize:vertical}
+.dashboard-profile-form .dashboard-primary-action,.dashboard-inline-form .dashboard-primary-action{justify-content:center;width:100%;border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.dashboard-form-status{color:var(--acid);font:11px var(--mono)}
+.dashboard-experience-layout{display:grid;grid-template-columns:minmax(240px,.72fr) minmax(0,1.4fr);gap:20px;padding:20px}
+.dashboard-table-action{min-height:36px;padding:0 10px;border:1px solid color-mix(in srgb,var(--coral) 55%,var(--line));border-radius:999px;background:transparent;color:var(--coral);font:700 10px var(--mono);cursor:pointer}
+.dashboard-table-action:hover{background:color-mix(in srgb,var(--coral) 14%,transparent)}
+@media(max-width:760px){.dashboard-theme-toggle{padding:0 9px}.dashboard-theme-toggle span{display:none}.dashboard-profile-popover{position:fixed;top:74px;right:16px}.dashboard-experience-layout{grid-template-columns:1fr;padding:14px}.dashboard-profile-trigger>.dashboard-icon{display:none}}
