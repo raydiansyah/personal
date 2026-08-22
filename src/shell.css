@@ -1,0 +1,11 @@
+/**
+ * Module: React shell controls
+ * Purpose: Keep navigation fixed and expose an accessible back-to-top action
+ * Used by: SiteShell on public, auth, and admin routes
+ * Dependencies: CSS variables from styles.css
+ * Public functions: None
+ * Side effects: Presentation-only positioning, focus, and scroll affordances
+ */
+main#main-content{padding-top:88px}.site-header{position:fixed;top:0;left:50%;transform:translateX(-50%);width:min(1344px,calc(100% - 96px));background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);z-index:50}.back-to-top{position:fixed;right:28px;bottom:28px;z-index:60;display:inline-flex;align-items:center;gap:8px;min-width:48px;min-height:48px;padding:12px 14px;border:1px solid var(--line);border-radius:999px;background:var(--ink);color:var(--paper);font:700 15px var(--sans);cursor:pointer;opacity:0;transform:translateY(16px);pointer-events:none;transition:opacity .24s ease,transform .24s ease,background-color .24s ease}.back-to-top span{font:10px var(--mono);text-transform:uppercase;letter-spacing:.08em}.back-to-top:hover{background:var(--coral);transform:translateY(-3px)}.back-to-top.is-visible{opacity:1;transform:translateY(0);pointer-events:auto}.menu-toggle{position:relative;z-index:55}
+@media(max-width:800px){main#main-content{padding-top:74px}.site-header{width:calc(100% - 42px);height:74px}.back-to-top{right:18px;bottom:18px}.desktop-nav.mobile-open{top:74px}}
+@media(prefers-reduced-motion:reduce){.back-to-top{transition:none}}

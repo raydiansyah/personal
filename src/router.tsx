@@ -24,6 +24,7 @@ import '../motion.css';
 import '../portfolio.css';
 import '../conversion.css';
 import '../promotions.css';
+import './shell.css';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 1 } } });
 const rootRoute = createRootRoute({ component: SiteShell });
