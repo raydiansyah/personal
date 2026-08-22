@@ -1,0 +1,13 @@
+<!--
+  Module: raydiansyah.com app icon
+  Purpose: Provide the rounded-square identity mark for installed web apps
+  Used by: index.html, app.html, and site.webmanifest
+  Dependencies: None; inline SVG colors
+  Public functions: None
+  Side effects: None; static vector asset only
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="42" fill="#07100E"/>
+  <rect x="5" y="5" width="182" height="182" rx="37" fill="none" stroke="#C7E36B" stroke-width="5"/>
+  <g transform="translate(48 48)"><path fill="#F2F2ED" d="M18 76V39c0-15 9-25 25-25 10 0 18 4 24 11L55 38c-3-4-7-6-12-6-7 0-11 4-11 11v33H18Z"/><path fill="#C7E36B" d="M45 61c11 0 18-6 18-18V13l14-8v40c0 21-12 34-33 34-11 0-21-4-29-11l10-12c6 4 12 5 20 5Z"/><circle cx="48" cy="43" r="7" fill="#FF8A65"/></g>
+</svg>

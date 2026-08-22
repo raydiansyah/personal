@@ -1,0 +1,16 @@
+{
+  "x-module-doc": {
+    "module": "raydiansyah.com web app manifest",
+    "purpose": "Declare browser-install metadata and brand icons",
+    "used_by": ["index.html", "app.html"],
+    "dependencies": ["/app-icon.svg"],
+    "side_effects": "Enables installable web-app metadata in supporting browsers"
+  },
+  "name": "raydiansyah.com",
+  "short_name": "raydiansyah",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07100E",
+  "theme_color": "#07100E",
+  "icons": [{ "src": "/app-icon.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
