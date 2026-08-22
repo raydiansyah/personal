@@ -17,5 +17,6 @@
 .button:active,.filter:active,.menu-toggle:active{transform:scale(.97)}
 .hero-art{--pointer-x:0px;--pointer-y:0px;transform:translate3d(var(--pointer-x),var(--pointer-y),0);transition:transform 700ms var(--motion-ease)}
 .art-card-float{animation:float-card 5s ease-in-out infinite}
+.about-orb{animation:none!important}
 @keyframes float-card{0%,100%{transform:rotate(8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-9px)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.reveal-on-scroll{opacity:1;transform:none}.hero-art{transform:none}}

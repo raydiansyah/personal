@@ -37,7 +37,7 @@ export function InteractiveHero() {
         <div className="window-bar"><i /><i /><i /><span>selected / 01</span></div><div className="dashboard-lines"><b /><b /><b /><b /></div><div className="dashboard-number">10<span>+</span></div><p>projects shipped<br />with intention</p>
       </motion.div>
       <motion.div className="art-card art-card-float" animate={reduceMotion ? undefined : { y: [0, -12, 0], rotate: [8, 10, 8] }} transition={reduceMotion ? undefined : { duration: 5, repeat: Infinity, ease: 'easeInOut' }} whileHover={reduceMotion ? undefined : { scale: 1.08 }}><span>↗</span><strong>Ideas into<br /><em>impact.</em></strong></motion.div>
-      <div className="art-label art-label-bottom">RAYDIANSYAH.COM<br /><span>JAKARTA — ID</span></div>
+      <div className="art-label art-label-bottom">RAYDIANSYAH.COM<br /><span>SURABAYA — ID</span></div>
     </motion.div>
   </MotionConfig>;
 }
