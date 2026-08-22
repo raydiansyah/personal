@@ -6,4 +6,4 @@
  * Public functions: None
  * Side effects: Presentation-only color token overrides
  */
-:root{--acid:#8da936}:root[data-theme='dark']{--acid:#c9e86b}
+:root{--acid:#8da936}:root[data-theme='dark']{--acid:#c9e86b}h1 em,h2 em{color:var(--acid)}.brand-dot{color:var(--acid)}.brand>span:last-child{color:var(--ink)}
