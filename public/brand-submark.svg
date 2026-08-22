@@ -1,6 +1,6 @@
 <!--
   Module: raydiansyah.com brand submark
-  Purpose: Render the responsive r/d signature mark for navigation and footer
+  Purpose: Serve the responsive r/d signature mark as a Vite static asset
   Used by: src/components/site-shell.tsx via /brand-submark.svg
   Dependencies: None; inline SVG colors
   Public functions: None
