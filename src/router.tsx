@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createRootRoute, createRoute, createRouter, RouterProvider } from '@tanstack/react-router';
 import { createRoot } from 'react-dom/client';
 import { SiteShell } from './components/site-shell';
+import { LanguageProvider } from './lib/language';
 import { AboutPage } from './pages/about-page';
 import { AdminApp } from './admin';
 import { ContactPage } from './pages/contact-page';
@@ -41,6 +42,6 @@ const adminRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin'
 const routeTree = rootRoute.addChildren([indexRoute, aboutRoute, portfolioRoute, portfolioDetailRoute, servicesRoute, contactRoute, slideRoute, authLoginRoute, adminRoute]);
 export const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent', scrollRestoration: true });
 declare module '@tanstack/react-router' { interface Register { router: typeof router } }
-export function AppRouter() { return <QueryClientProvider client={queryClient}><RouterProvider router={router} /></QueryClientProvider>; }
+export function AppRouter() { return <QueryClientProvider client={queryClient}><LanguageProvider><RouterProvider router={router} /></LanguageProvider></QueryClientProvider>; }
 const root = document.getElementById('root');
 if (root) createRoot(root).render(<AppRouter />);

@@ -2,7 +2,7 @@
  * Module: Public React site shell
  * Purpose: Provide fixed navigation, responsive menu, theme control, back-to-top action, footer, and shared cards
  * Used by: TanStack public, auth, and admin routes
- * Dependencies: React, TanStack Router, analytics helper, brand submark asset, landing design tokens
+ * Dependencies: React, TanStack Router, language preference, analytics helper, brand submark asset, landing design tokens
  * Public functions: SiteShell(), Feature(), ProjectCard(), BrandLogo()
  * Side effects: Persists theme and analytics consent preferences, conditionally loads analytics, listens to scroll state, and performs client-side navigation
  */
@@ -10,9 +10,11 @@ import { Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { initAnalytics } from '../lib/analytics';
 import { APP_VERSION } from '../lib/version';
+import { useLanguage } from '../lib/language';
 
 export function SiteShell() {
   const location = useLocation();
+  const { language, setLanguage } = useLanguage();
   const [dark, setDark] = useState(() => { const saved = window.localStorage.getItem('raydiansyah-theme'); return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -47,17 +49,18 @@ export function SiteShell() {
     <a className="skip-link" href="#main-content">Lewati ke konten utama</a>
     <header className="site-header">
       <Link className="brand" to="/" aria-label="raydiansyah.com home"><BrandLogo /><span>raydiansyah<span className="brand-dot">.</span>com</span></Link>
-      <nav className={`desktop-nav${mobileOpen ? ' mobile-open' : ''}`} aria-label="Navigasi utama">
-        <a href="/#work">Work</a><a href="/#experience">Experience</a><Link to="/about">About</Link><a href="/#contact">Contact</a>
+      <nav className={`desktop-nav${mobileOpen ? ' mobile-open' : ''}`} aria-label={language === 'id' ? 'Navigasi utama' : 'Main navigation'}>
+        <a href="/#work">{language === 'id' ? 'Karya' : 'Work'}</a><a href="/#experience">{language === 'id' ? 'Pengalaman' : 'Experience'}</a><Link to="/about">{language === 'id' ? 'Tentang' : 'About'}</Link><a href="/#contact">{language === 'id' ? 'Kontak' : 'Contact'}</a>
       </nav>
-      <button className="theme-toggle" type="button" aria-pressed={dark} aria-label={dark ? 'Aktifkan light mode' : 'Aktifkan dark mode'} onClick={() => setDark((value) => !value)}><span aria-hidden="true">{dark ? '☼' : '◐'}</span><span>{dark ? 'Dark' : 'Light'}</span></button>
-      <Link className="header-cta" to="/contact">Mulai ngobrol <span>↗</span></Link>
-      <button className="menu-toggle" type="button" aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>☰</button>
+      <div className="language-switch" aria-label="Language"><button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button><span aria-hidden="true">|</span><button type="button" className={language === 'id' ? 'active' : ''} aria-pressed={language === 'id'} onClick={() => setLanguage('id')}>ID</button></div>
+      <button className="theme-toggle" type="button" aria-pressed={dark} aria-label={dark ? (language === 'id' ? 'Aktifkan light mode' : 'Enable light mode') : (language === 'id' ? 'Aktifkan dark mode' : 'Enable dark mode')} onClick={() => setDark((value) => !value)}><span aria-hidden="true">{dark ? '☼' : '◐'}</span><span>{dark ? 'Dark' : 'Light'}</span></button>
+      <Link className="header-cta" to="/contact">{language === 'id' ? 'Mulai ngobrol' : 'Start a conversation'} <span>↗</span></Link>
+      <button className="menu-toggle" type="button" aria-label={mobileOpen ? (language === 'id' ? 'Tutup menu' : 'Close menu') : (language === 'id' ? 'Buka menu' : 'Open menu')} aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>☰</button>
     </header>
     <main id="main-content"><Outlet /></main>
     <footer className="site-footer section-wrap"><Link className="brand" to="/"><BrandLogo /><span>raydiansyah<span className="brand-dot">.</span>com</span></Link><p>© {new Date().getFullYear()} raydiansyah.com.</p><div><a href="https://github.com/raydiansyah" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://www.linkedin.com/in/raydiansyah/" target="_blank" rel="noreferrer">LinkedIn ↗</a></div><small className="site-version">v{APP_VERSION}</small></footer>
-    {analyticsConsent === null && <aside className="consent-banner" aria-label="Persetujuan analytics"><p>Situs ini menggunakan analytics anonim untuk memahami performa halaman dan interaksi umum.</p><div><button type="button" onClick={() => setAnalyticsConsent('denied')}>Tolak</button><button type="button" onClick={() => setAnalyticsConsent('granted')}>Setuju</button></div></aside>}
-    <button className={`back-to-top${showBackToTop ? ' is-visible' : ''}`} type="button" aria-label="Kembali ke atas" onClick={backToTop} tabIndex={showBackToTop ? 0 : -1}>↑ <span>Top</span></button>
+    {analyticsConsent === null && <aside className="consent-banner" aria-label={language === 'id' ? 'Persetujuan analytics' : 'Analytics consent'}><p>{language === 'id' ? 'Situs ini menggunakan analytics anonim untuk memahami performa halaman dan interaksi umum.' : 'This site uses anonymous analytics to understand page performance and general interactions.'}</p><div><button type="button" onClick={() => setAnalyticsConsent('denied')}>{language === 'id' ? 'Tolak' : 'Decline'}</button><button type="button" onClick={() => setAnalyticsConsent('granted')}>{language === 'id' ? 'Setuju' : 'Accept'}</button></div></aside>}
+    <button className={`back-to-top${showBackToTop ? ' is-visible' : ''}`} type="button" aria-label={language === 'id' ? 'Kembali ke atas' : 'Back to top'} onClick={backToTop} tabIndex={showBackToTop ? 0 : -1}>↑ <span>Top</span></button>
   </div>;
 }
 
