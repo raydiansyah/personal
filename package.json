@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "dev:tanstack": "vite --host",
-    "build": "vite build",
+    "build": "node scripts/build.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"

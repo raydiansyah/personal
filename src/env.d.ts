@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_PUBLISHABLE_KEY: string;
   readonly VITE_SUPABASE_ANON_KEY?: string;
   readonly VITE_GA_MEASUREMENT_ID?: string;
+  readonly VITE_APP_VERSION?: string;
   readonly VITE_R2_UPLOAD_ENDPOINT: string;
   readonly VITE_R2_PUBLIC_BASE_URL: string;
   readonly VITE_TURNSTILE_SITE_KEY?: string;
