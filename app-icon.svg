@@ -1,7 +1,7 @@
 <!--
   Module: raydiansyah.com app icon
   Purpose: Provide the rounded-square identity mark for installed web apps
-  Used by: index.html, app.html, and site.webmanifest
+  Used by: index.html and site.webmanifest
   Dependencies: None; inline SVG colors
   Public functions: None
   Side effects: None; static vector asset only

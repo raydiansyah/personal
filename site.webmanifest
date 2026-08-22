@@ -2,7 +2,7 @@
   "x-module-doc": {
     "module": "raydiansyah.com web app manifest",
     "purpose": "Declare browser-install metadata and brand icons",
-    "used_by": ["index.html", "app.html"],
+    "used_by": ["index.html"],
     "dependencies": ["/app-icon.svg"],
     "side_effects": "Enables installable web-app metadata in supporting browsers"
   },

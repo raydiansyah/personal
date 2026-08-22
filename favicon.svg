@@ -1,7 +1,7 @@
 <!--
   Module: raydiansyah.com favicon
   Purpose: Provide the compact circular r/d identity mark in browser tabs
-  Used by: index.html and app.html
+  Used by: index.html
   Dependencies: None
   Public functions: None
   Side effects: None; static asset only

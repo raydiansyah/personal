@@ -1,7 +1,7 @@
 /**
  * Module: TanStack route registry
  * Purpose: Compose the public route tree and mount the application providers
- * Used by: src/main.tsx and app.html
+ * Used by: src/main.tsx and index.html
  * Dependencies: TanStack Router/Query, page modules, shared CSS
  * Public functions: AppRouter()
  * Side effects: Mounts the browser router and query cache
