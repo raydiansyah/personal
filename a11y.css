@@ -1,0 +1,9 @@
+/*
+  Module: raydiansyah.com accessibility overrides
+  Purpose: Preserve visible keyboard focus states across the landing page
+  Used by: index.html after styles.css
+  Dependencies: CSS custom properties from styles.css
+  Public functions: Focus-visible styling for interactive controls
+  Side effects: None; presentation-only rules
+*/
+a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--coral);outline-offset:4px}.skip-link{position:fixed;left:16px;top:12px;z-index:1000;padding:10px 14px;background:var(--ink);color:var(--paper);transform:translateY(-150%);transition:transform 180ms ease}.skip-link:focus{transform:translateY(0)}.contact-form input,.contact-form select,.contact-form textarea{min-height:44px}.contact-form select{display:block;width:100%;border:0;background:transparent;color:var(--paper);font:15px var(--sans);padding:12px 0 4px}.contact-form select option{color:var(--ink)}.hp-field{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}

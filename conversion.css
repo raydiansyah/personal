@@ -1,0 +1,9 @@
+/*
+  Module: raydiansyah.com conversion layer
+  Purpose: Keep the primary contact path visible on mobile and provide a consistent conversion affordance
+  Used by: index.html and script.js
+  Dependencies: Existing design tokens from styles.css
+  Public functions: Mobile sticky WhatsApp CTA and conversion event affordance
+  Side effects: Opens WhatsApp when the sticky CTA is activated; no PII storage
+*/
+.mobile-cta{display:none}.mobile-cta i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#70b37e;margin-right:6px;box-shadow:0 0 0 4px #dbe7d9}.mobile-cta span{color:var(--muted);font:9px var(--mono);text-transform:uppercase}.mobile-cta strong{font-size:12px}@media(max-width:800px){body{padding-bottom:76px}.mobile-cta{position:fixed;display:flex;align-items:center;justify-content:space-between;gap:14px;left:14px;right:14px;bottom:14px;z-index:30;padding:14px 16px;background:var(--ink);color:var(--paper);box-shadow:0 10px 30px #17211d35;text-decoration:none}.mobile-cta strong{color:var(--acid)}}

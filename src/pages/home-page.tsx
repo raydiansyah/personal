@@ -1,0 +1,12 @@
+/**
+ * Module: Homepage page
+ * Purpose: Present the studio proposition, approach, selected work, testimonial, and CTAs
+ * Used by: TanStack route /
+ * Dependencies: Shared site components and TanStack links
+ * Public functions: HomePage()
+ * Side effects: Client-side navigation only
+ */
+import { Link } from '@tanstack/react-router';
+import { Feature, ProjectCard } from '../components/site-shell';
+
+export function HomePage() { return <><section className="page hero"><div><p className="eyebrow">Independent digital studio · Indonesia</p><h1>Digital products with <em>point of view.</em></h1><p className="lede">Saya Suprayogo — membantu bisnis yang sedang tumbuh mengubah ide kompleks menjadi pengalaman digital yang terasa jelas, cepat, dan berkesan.</p><div className="actions"><Link className="button primary" to="/contact">Mulai percakapan ↗</Link><Link className="button" to="/portfolio">Lihat selected work</Link></div></div><div className="orb" aria-label="Bentuk animasi dekoratif" role="img" /></section><section className="page section"><div className="section-heading"><div><p className="eyebrow">The approach</p><h2>Clarity creates momentum.</h2></div><p className="muted">Strategi · Design · Build</p></div><div className="grid"><Feature number="01" title="Find the signal" text="Kita merapikan problem dan menemukan satu arah yang bisa digerakkan." /><Feature number="02" title="Make it felt" text="Visual, interaction, dan copy bekerja sebagai satu pengalaman yang utuh." /><Feature number="03" title="Ship with intent" text="Teknologi dipilih untuk membuat produk mudah dirawat dan siap bertumbuh." /></div></section><section className="page section"><div className="section-heading"><div><p className="eyebrow">Selected work</p><h2>Small list. Strong signal.</h2></div><Link className="button" to="/portfolio">Explore all ↗</Link></div><div className="grid"><ProjectCard title="Karsa Studio" type="Company profile" text="A digital home for a creative practice." slug="karsa-studio" /><ProjectCard title="Nusa Commerce" type="Web application" text="A calmer way to read commerce momentum." slug="nusa-commerce" /><ProjectCard title="Ruang Rumah" type="Website" text="Warm digital presence for an interior brand." slug="ruang-rumah" /></div></section><section className="page section"><p className="eyebrow">Client note</p><h2>“It finally feels like us.”</h2><p className="lede">Bukan sekadar terlihat bagus — pengalaman digitalnya memberi tim kami bahasa yang sama untuk tumbuh.</p><p className="muted">— Founder, Karsa Studio</p></section></>; }

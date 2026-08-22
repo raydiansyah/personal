@@ -1,0 +1,8 @@
+# Module: Supabase local/project function configuration
+# Purpose: Allow the public contact function to perform its own validation and rate limiting
+# Used by: Supabase CLI when deploying send-contact-notification
+# Dependencies: Supabase Edge Functions runtime
+# Public functions: send-contact-notification
+# Side effects: Disables gateway JWT enforcement for this public form endpoint
+[functions.send-contact-notification]
+verify_jwt = false

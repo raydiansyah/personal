@@ -1,0 +1,15 @@
+# Module: raydiansyah.com repository ignore rules
+# Purpose: Keep dependencies, builds, local environment, and browser artifacts out of Git
+# Used by: Git working tree
+# Dependencies: None
+# Public functions: None
+# Side effects: Excludes generated/local files from version control only
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.playwright-mcp/
+.vercel
+.env*.local
+graphify-out/

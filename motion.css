@@ -1,0 +1,21 @@
+/*
+  Module: raydiansyah.com motion system
+  Purpose: Add lightweight editorial reveals, tactile controls, and pointer-responsive hero motion
+  Used by: index.html and script.js
+  Dependencies: CSS custom properties from styles.css; IntersectionObserver in script.js
+  Public functions: .reveal-on-scroll, .in-view, .hero-art motion states
+  Side effects: Visual-only transforms and opacity transitions; reduced-motion disables animation
+*/
+:root{--motion-ease:cubic-bezier(.22,.8,.25,1);--motion-fast:180ms;--motion-slow:620ms}
+.reveal-on-scroll{opacity:0;transform:translateY(24px);transition:opacity var(--motion-slow) var(--motion-ease),transform var(--motion-slow) var(--motion-ease);transition-delay:var(--reveal-delay,0ms)}
+.reveal-on-scroll.in-view{opacity:1;transform:translateY(0)}
+.work-card,.service-grid article,.button,.text-link,.filter,.header-cta{transition:transform var(--motion-fast) var(--motion-ease),box-shadow var(--motion-fast) var(--motion-ease),background-color var(--motion-fast) ease,color var(--motion-fast) ease,opacity var(--motion-fast) ease}
+.work-card:hover{transform:translateY(-6px)}
+.work-card:hover .work-image{box-shadow:0 16px 30px #17211d18}
+.service-grid article:hover{transform:translateY(-4px)}
+.button:hover,.header-cta:hover,.text-link:hover{transform:translateY(-2px)}
+.button:active,.filter:active,.menu-toggle:active{transform:scale(.97)}
+.hero-art{--pointer-x:0px;--pointer-y:0px;transform:translate3d(var(--pointer-x),var(--pointer-y),0);transition:transform 700ms var(--motion-ease)}
+.art-card-float{animation:float-card 5s ease-in-out infinite}
+@keyframes float-card{0%,100%{transform:rotate(8deg) translateY(0)}50%{transform:rotate(8deg) translateY(-9px)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}.reveal-on-scroll{opacity:1;transform:none}.hero-art{transform:none}}

@@ -1,0 +1,21 @@
+# Module: raydiansyah.com downloadable CV
+# Purpose: Provide a transparent local CV download until the owner supplies a designed PDF
+# Used by: AboutPage download CTA
+# Dependencies: None
+# Public functions: None
+# Side effects: Browser download only
+
+SUPRAYOGO / RAYDIANSYAH
+Independent Digital Studio
+
+Focus
+Digital strategy, web design, web applications, and maintainable product foundations.
+
+Capabilities
+JavaScript, TypeScript, React, Node.js, Supabase, Laravel, TanStack, Python, HTML, CSS.
+
+Selected direction
+Building clear digital experiences for growing businesses through strategy, design, and technology.
+
+Contact
+raydiansyah.com

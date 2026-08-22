@@ -1,0 +1,9 @@
+# Module: raydiansyah.com crawler policy
+# Purpose: Allow indexing of public landing-page content
+# Used by: Search engine crawlers at /robots.txt
+# Dependencies: sitemap.xml
+# Public functions: None
+# Side effects: None; static crawler directives
+User-agent: *
+Allow: /
+Sitemap: https://raydiansyah.com/sitemap.xml
