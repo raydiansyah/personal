@@ -45,6 +45,8 @@ export function SiteShell() {
     window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }
 
+  if (location.pathname.startsWith('/dashboard')) return <main id="main-content" className="dashboard-route"><Outlet /></main>;
+
   return <div className="app-shell">
     <a className="skip-link" href="#main-content">Lewati ke konten utama</a>
     <header className="site-header">
