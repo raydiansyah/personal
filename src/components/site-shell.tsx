@@ -12,7 +12,7 @@ import { initAnalytics } from '../lib/analytics';
 
 export function SiteShell() {
   const location = useLocation();
-  const [dark, setDark] = useState(() => document.documentElement.dataset.theme !== 'light');
+  const [dark, setDark] = useState(() => { const saved = window.localStorage.getItem('raydiansyah-theme'); return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
 

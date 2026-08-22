@@ -1,0 +1,9 @@
+/**
+ * Module: Theme contrast overrides
+ * Purpose: Keep the signature green accent visible in light mode while preserving the luminous dark-mode accent
+ * Used by: React public, auth, and admin routes
+ * Dependencies: CSS custom properties from styles.css
+ * Public functions: None
+ * Side effects: Presentation-only color token overrides
+ */
+:root{--acid:#8da936}:root[data-theme='dark']{--acid:#c9e86b}
