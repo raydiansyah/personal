@@ -1,8 +1,8 @@
 /**
  * Module: Contact notification Edge Function
- * Purpose: Validate public inquiries, enforce a small abuse guard, persist the row, and notify the owner
+ * Purpose: Validate public inquiries, enforce a small abuse guard, persist the row, and notify the owner with bounded retry
  * Used by: src/lib/contact.ts through Supabase Functions
- * Dependencies: Supabase PostgREST endpoint; Resend HTTP API; Edge Runtime environment secrets
+ * Dependencies: Supabase PostgREST endpoint; Resend HTTP API; Edge Runtime server secrets
  * Public functions: Deno.serve handler
  * Side effects: Writes pesan_kontak and sends one transactional email
  */
@@ -48,17 +48,32 @@ function isRateLimited(key: string) {
   return current.count > MAX_ATTEMPTS
 }
 
+async function fetchWithRetry(input: string, init: RequestInit, maxAttempts = 2) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      const response = await fetch(input, init)
+      if (response.ok || response.status < 500 || attempt === maxAttempts) return response
+    } catch (error) {
+      if (attempt === maxAttempts) throw error
+    }
+    await new Promise((resolve) => setTimeout(resolve, attempt * 250))
+  }
+  throw new Error('request retry exhausted')
+}
+
 async function persistContact(payload: Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload) {
+  const secretKey = Deno.env.get('SUPABASE_SECRET_KEY')
+  if (!secretKey) throw new Error('SUPABASE_SECRET_KEY is not configured')
   const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/pesan_kontak`, {
     method: 'POST',
-    headers: { apikey: Deno.env.get('SUPABASE_ANON_KEY') ?? '', Authorization: `Bearer ${Deno.env.get('SUPABASE_ANON_KEY') ?? ''}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    headers: { apikey: secretKey, Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
     body: JSON.stringify({ nama: payload.nama, email: payload.email, telepon: payload.telepon || null, jenis_layanan: payload.jenis_layanan || null, perkiraan_anggaran: payload.perkiraan_anggaran || 'Belum ditentukan', pesan: payload.pesan }),
   })
   if (!response.ok) throw new Error(`contact persistence failed: ${response.status}`)
 }
 
 async function notifyOwner(payload: Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload) {
-  const response = await fetch('https://api.resend.com/emails', {
+  const response = await fetchWithRetry('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY') ?? ''}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -81,5 +96,5 @@ Deno.serve(async (request) => {
   if (!payload.nama?.trim() || !payload.email?.trim() || !payload.pesan?.trim()) return json({ error: 'missing_required_fields' }, 400)
   if (payload.nama.length > 160 || payload.email.length > 320 || payload.pesan.length > 5000) return json({ error: 'field_too_long' }, 400)
   const normalized = { ...payload, nama: payload.nama.trim(), email: payload.email.trim(), pesan: payload.pesan.trim() }
-  try { await persistContact(normalized as Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload); await notifyOwner(normalized as Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload); return json({ ok: true }, 201) } catch (error) { console.error(error); return json({ error: 'contact_submission_failed' }, 502) }
+  try { await persistContact(normalized as Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload); await notifyOwner(normalized as Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload); return json({ ok: true }, 201) } catch { console.error('contact submission failed'); return json({ error: 'contact_submission_failed' }, 502) }
 })

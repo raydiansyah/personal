@@ -4,7 +4,7 @@
  * Used by: TanStack public, auth, and admin routes
  * Dependencies: React, TanStack Router, analytics helper, brand submark asset, landing design tokens
  * Public functions: SiteShell(), Feature(), ProjectCard(), BrandLogo()
- * Side effects: Persists theme preference, listens to scroll state, and performs client-side navigation
+ * Side effects: Persists theme and analytics consent preferences, conditionally loads analytics, listens to scroll state, and performs client-side navigation
  */
 import { Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
@@ -15,12 +15,17 @@ export function SiteShell() {
   const [dark, setDark] = useState(() => { const saved = window.localStorage.getItem('raydiansyah-theme'); return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches; });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [analyticsConsent, setAnalyticsConsent] = useState<'granted' | 'denied' | null>(() => { const value = window.localStorage.getItem('raydiansyah-analytics-consent'); return value === 'granted' || value === 'denied' ? value : null; });
 
   useEffect(() => {
-    initAnalytics();
     document.documentElement.dataset.theme = dark ? 'dark' : 'light';
     window.localStorage.setItem('raydiansyah-theme', dark ? 'dark' : 'light');
   }, [dark]);
+
+  useEffect(() => {
+    if (analyticsConsent === 'granted') initAnalytics();
+    if (analyticsConsent) window.localStorage.setItem('raydiansyah-analytics-consent', analyticsConsent);
+  }, [analyticsConsent]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -50,6 +55,7 @@ export function SiteShell() {
     </header>
     <main id="main-content"><Outlet /></main>
     <footer className="site-footer section-wrap"><Link className="brand" to="/"><BrandLogo /><span>raydiansyah<span className="brand-dot">.</span>com</span></Link><p>© {new Date().getFullYear()} raydiansyah.com.</p><div><a href="https://github.com/raydiansyah" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://www.linkedin.com/in/raydiansyah/" target="_blank" rel="noreferrer">LinkedIn ↗</a></div></footer>
+    {analyticsConsent === null && <aside className="consent-banner" aria-label="Persetujuan analytics"><p>Situs ini menggunakan analytics anonim untuk memahami performa halaman dan interaksi umum.</p><div><button type="button" onClick={() => setAnalyticsConsent('denied')}>Tolak</button><button type="button" onClick={() => setAnalyticsConsent('granted')}>Setuju</button></div></aside>}
     <button className={`back-to-top${showBackToTop ? ' is-visible' : ''}`} type="button" aria-label="Kembali ke atas" onClick={backToTop} tabIndex={showBackToTop ? 0 : -1}>↑ <span>Top</span></button>
   </div>;
 }
