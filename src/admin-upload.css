@@ -1,0 +1,9 @@
+/**
+ * Module: Admin upload feedback styles
+ * Purpose: Make slide upload progress and disabled states visible
+ * Used by: src/admin.tsx upload form
+ * Dependencies: Existing admin form classes and design tokens
+ * Public functions: None
+ * Side effects: None; presentation-only CSS
+ */
+.upload-progress{display:grid;gap:7px;color:#d3f36b;font-size:.8rem}.upload-progress progress{width:100%;height:8px;accent-color:#d3f36b}.form button:disabled{cursor:wait;opacity:.65}.site-version{color:#8f8b83;font-variant-numeric:tabular-nums}

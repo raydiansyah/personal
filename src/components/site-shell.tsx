@@ -9,6 +9,7 @@
 import { Link, Outlet, useLocation } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 import { initAnalytics } from '../lib/analytics';
+import { APP_VERSION } from '../lib/version';
 
 export function SiteShell() {
   const location = useLocation();
@@ -54,7 +55,7 @@ export function SiteShell() {
       <button className="menu-toggle" type="button" aria-label={mobileOpen ? 'Tutup menu' : 'Buka menu'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((value) => !value)}>☰</button>
     </header>
     <main id="main-content"><Outlet /></main>
-    <footer className="site-footer section-wrap"><Link className="brand" to="/"><BrandLogo /><span>raydiansyah<span className="brand-dot">.</span>com</span></Link><p>© {new Date().getFullYear()} raydiansyah.com.</p><div><a href="https://github.com/raydiansyah" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://www.linkedin.com/in/raydiansyah/" target="_blank" rel="noreferrer">LinkedIn ↗</a></div></footer>
+    <footer className="site-footer section-wrap"><Link className="brand" to="/"><BrandLogo /><span>raydiansyah<span className="brand-dot">.</span>com</span></Link><p>© {new Date().getFullYear()} raydiansyah.com.</p><div><a href="https://github.com/raydiansyah" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://www.linkedin.com/in/raydiansyah/" target="_blank" rel="noreferrer">LinkedIn ↗</a></div><small className="site-version">v{APP_VERSION}</small></footer>
     {analyticsConsent === null && <aside className="consent-banner" aria-label="Persetujuan analytics"><p>Situs ini menggunakan analytics anonim untuk memahami performa halaman dan interaksi umum.</p><div><button type="button" onClick={() => setAnalyticsConsent('denied')}>Tolak</button><button type="button" onClick={() => setAnalyticsConsent('granted')}>Setuju</button></div></aside>}
     <button className={`back-to-top${showBackToTop ? ' is-visible' : ''}`} type="button" aria-label="Kembali ke atas" onClick={backToTop} tabIndex={showBackToTop ? 0 : -1}>↑ <span>Top</span></button>
   </div>;
