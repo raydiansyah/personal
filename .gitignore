@@ -13,3 +13,4 @@ dist/
 .vercel
 .env*.local
 graphify-out/
+supabase/.temp/
