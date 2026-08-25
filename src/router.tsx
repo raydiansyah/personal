@@ -19,6 +19,7 @@ import { PortfolioDetailPage, PortfolioPage } from './pages/portfolio-pages';
 import { ServicesPage } from './pages/services-page';
 import { SlidePage } from './pages/slide-page';
 import { DashboardApp } from './pages/dashboard-page';
+import { NotFoundPage, RouteErrorPage } from './pages/error-page';
 import './app.css';
 import '../styles.css';
 import '../a11y.css';
@@ -29,9 +30,10 @@ import '../promotions.css';
 import './shell.css';
 import './theme.css';
 import '../dashboard.css';
+import '../error.css';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 60_000, retry: 1 } } });
-const rootRoute = createRootRoute({ component: SiteShell });
+const rootRoute = createRootRoute({ component: SiteShell, notFoundComponent: NotFoundPage, errorComponent: RouteErrorPage });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
 const aboutRoute = createRoute({ getParentRoute: () => rootRoute, path: '/about', component: AboutPage });
 const portfolioRoute = createRoute({ getParentRoute: () => rootRoute, path: '/portfolio', component: PortfolioPage });
@@ -40,15 +42,15 @@ const servicesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/ser
 const contactRoute = createRoute({ getParentRoute: () => rootRoute, path: '/contact', component: ContactPage });
 const slideRoute = createRoute({ getParentRoute: () => rootRoute, path: '/s/$slug', component: SlidePage });
 const authLoginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/auth/login', component: AdminApp });
-const adminRoute = createRoute({ getParentRoute: () => rootRoute, path: '/admin', component: AdminApp });
 const dashboardRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard', component: DashboardApp });
 const dashboardPortfolioRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/portfolio', component: DashboardApp });
 const dashboardPortfolioTypoRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/portofoio', component: DashboardApp });
 const dashboardSlideRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/slide', component: DashboardApp });
 const dashboardExperienceRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/experience', component: DashboardApp });
+const dashboardSkillsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/skills', component: DashboardApp });
 const dashboardTestimonialsRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/testimonials', component: DashboardApp });
 const dashboardMessagesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/dashboard/messages', component: DashboardApp });
-const routeTree = rootRoute.addChildren([indexRoute, aboutRoute, portfolioRoute, portfolioDetailRoute, servicesRoute, contactRoute, slideRoute, authLoginRoute, adminRoute, dashboardRoute, dashboardPortfolioRoute, dashboardPortfolioTypoRoute, dashboardSlideRoute, dashboardExperienceRoute, dashboardTestimonialsRoute, dashboardMessagesRoute]);
+const routeTree = rootRoute.addChildren([indexRoute, aboutRoute, portfolioRoute, portfolioDetailRoute, servicesRoute, contactRoute, slideRoute, authLoginRoute, dashboardRoute, dashboardPortfolioRoute, dashboardPortfolioTypoRoute, dashboardSlideRoute, dashboardExperienceRoute, dashboardSkillsRoute, dashboardTestimonialsRoute, dashboardMessagesRoute]);
 export const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: 'intent', scrollRestoration: true });
 declare module '@tanstack/react-router' { interface Register { router: typeof router } }
 export function AppRouter() { return <QueryClientProvider client={queryClient}><LanguageProvider><RouterProvider router={router} /></LanguageProvider></QueryClientProvider>; }

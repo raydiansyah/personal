@@ -17,6 +17,7 @@ interface ImportMetaEnv {
   readonly VITE_R2_UPLOAD_ENDPOINT: string;
   readonly VITE_R2_PUBLIC_BASE_URL: string;
   readonly VITE_TURNSTILE_SITE_KEY?: string;
+  readonly VITE_TURNSTILE_ENABLED?: string;
 }
 
 interface Window {

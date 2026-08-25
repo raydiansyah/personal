@@ -1,0 +1,13 @@
+<!--
+  Module: raydiansyah.com light-theme submark
+  Purpose: Keep the brand mark visible on light dashboard surfaces
+  Used by: Dashboard sidebar when the document theme is light
+  Dependencies: None; inline SVG colors
+  Public functions: None
+  Side effects: None; static vector asset only
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="raydiansyah.com mark">
+  <path fill="#1D2924" d="M18 76V39c0-15 9-25 25-25 10 0 18 4 24 11L55 38c-3-4-7-6-12-6-7 0-11 4-11 11v33H18Z"/>
+  <path fill="#92B629" d="M45 61c11 0 18-6 18-18V13l14-8v40c0 21-12 34-33 34-11 0-21-4-29-11l10-12c6 4 12 5 20 5Z"/>
+  <circle cx="48" cy="43" r="7" fill="#E66E4E"/>
+</svg>

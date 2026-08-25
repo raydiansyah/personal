@@ -2,7 +2,7 @@
  * Module: Contact notification Edge Function
  * Purpose: Validate CAPTCHA-protected public inquiries, enforce a small abuse guard, persist the row, and notify the owner with bounded retry
  * Used by: src/lib/contact.ts through Supabase Functions
- * Dependencies: Supabase PostgREST endpoint; Resend HTTP API; Cloudflare Turnstile Siteverify; Edge Runtime server secrets
+ * Dependencies: Supabase PostgREST endpoint; Resend HTTP API; Cloudflare Turnstile Siteverify; TURNSTILE_ENABLED; Edge Runtime server secrets
  * Public functions: Deno.serve handler
  * Side effects: Writes pesan_kontak and sends one transactional email
  */
@@ -62,7 +62,13 @@ async function fetchWithRetry(input: string, init: RequestInit, maxAttempts = 2)
   throw new Error('request retry exhausted')
 }
 
+function isTurnstileEnabled() {
+  const value = (Deno.env.get('TURNSTILE_ENABLED') ?? 'on').trim().toLowerCase()
+  return !['off', 'false', '0', 'no'].includes(value)
+}
+
 async function verifyCaptcha(token: string | undefined, remoteIp: string) {
+  if (!isTurnstileEnabled()) return true
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY')
   if (!secret || !token) return false
   const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
