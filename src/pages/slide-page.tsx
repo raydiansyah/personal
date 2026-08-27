@@ -245,7 +245,7 @@ export function SlidePage() {
           title={slide.judul}
           src={url}
           sandbox={
-            slide.mime_type === "text/html" ? "allow-scripts" : undefined
+            slide.mime_type === "text/html" ? "allow-scripts allow-same-origin" : undefined
           }
           style={{ width: "100%", height: "70vh", border: 0 }}
           allowFullScreen
