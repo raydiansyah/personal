@@ -35,6 +35,7 @@ import {
   listTestimonials,
   signOutOwner,
   slugify,
+  validateSlideSlug,
   updateContactStatus,
   updateExperience,
   updateMaterial,
@@ -820,6 +821,7 @@ function SlideView({
   const [mime, setMime] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState("");
+  const [customSlug, setCustomSlug] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
   const [status, setStatus] = useState("");
@@ -925,6 +927,12 @@ function SlideView({
     }
     try {
       const form = new FormData(event.currentTarget);
+      const requestedSlug = String(form.get("slug") ?? "").trim() || slugify(title);
+      const slugError = validateSlideSlug(requestedSlug, data);
+      if (slugError) {
+        setStatus(slugError);
+        return;
+      }
       const selectedMaterialId = String(form.get("material_id") ?? "");
       let destinationMaterialId = selectedMaterialId;
       let createdAccessCode = "";
@@ -955,11 +963,12 @@ function SlideView({
       const materialSlides = data.filter(
         (item) => item.material_id === destinationMaterialId,
       );
-      await uploadSlide(file as File, title, slugify(title), {
+      await uploadSlide(file as File, title, requestedSlug, {
         materialId: destinationMaterialId,
         urutan: materialSlides.length,
       });
       setTitle("");
+      setCustomSlug("");
       setFile(null);
       setFileError("");
       setStatus(createdAccessCode ? `Slide added. Access code: ${createdAccessCode}` : "Slide added.");
@@ -983,9 +992,15 @@ function SlideView({
     if (!editing) return;
     const form = new FormData(event.currentTarget);
     const next = String(form.get("judul") ?? "").trim();
+    const nextSlug = String(form.get("slug") ?? "").trim();
     if (!next) return;
+    const slugError = validateSlideSlug(nextSlug, data, editing.id);
+    if (slugError) {
+      setStatus(slugError);
+      return;
+    }
     try {
-      await updateSlide(editing.id, { judul: next, slug: slugify(next) });
+      await updateSlide(editing.id, { judul: next, slug: nextSlug });
       setEditing(null);
       setStatus("Slide updated.");
       onChanged();
@@ -1338,6 +1353,21 @@ function SlideView({
               />
             </label>
             <label>
+              Custom URL slug
+              <input
+                name="slug"
+                value={customSlug}
+                onChange={(event) => setCustomSlug(event.target.value.toLowerCase().replace(/\s+/g, "-"))}
+                placeholder={slugify(title) || "my-slide"}
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                maxLength={80}
+                aria-describedby="slide-slug-help"
+              />
+              <small id="slide-slug-help" className="dashboard-upload-help">
+                Optional. Lowercase letters, numbers, and hyphens only; must be unique. Empty uses the title slug.
+              </small>
+            </label>
+            <label>
               File
               <input
                 name="file"
@@ -1402,10 +1432,15 @@ function SlideView({
             <label>
               Slug
               <input
-                value={editing.slug}
-                readOnly
-                aria-label="Generated slide slug"
+                name="slug"
+                defaultValue={editing.slug}
+                pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                maxLength={80}
+                aria-describedby="edit-slide-slug-help"
               />
+              <small id="edit-slide-slug-help" className="dashboard-upload-help">
+                Lowercase letters, numbers, and hyphens only. Must be unique.
+              </small>
             </label>
             <p className="dashboard-modal-note">
               File type: {editing.mime_type === "text/html" ? "HTML" : "PDF"}.

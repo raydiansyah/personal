@@ -1,6 +1,6 @@
 /**
  * Module: Public presentation slide service
- * Purpose: Read authorized HTML/PDF presentation metadata by custom slug
+ * Purpose: Read authorized HTML/PDF presentation metadata and ordered learning paths by custom slug
  * Used by: Public slide route /s/$slug
  * Dependencies: Supabase browser client; slide_presentasi public-read policy
  * Public functions: getSlideBySlug()

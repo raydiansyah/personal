@@ -3,7 +3,7 @@
  * Purpose: Provide authenticated Supabase operations for content management and inbox review
  * Used by: src/admin.tsx
  * Dependencies: Supabase browser client for metadata/Auth, shared file validation, and Cloudflare R2 presign endpoint for file bytes
- * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), updateOwnerProfile(), listOwnerPortfolio(), createPortfolio(), updatePortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), updateTestimonial(), deleteTestimonial(), listMaterials(), createMaterial(), updateMaterial(), deleteMaterial(), listSlides(), updateSlide(), updateSlideOrder(), deleteSlide(), listOwnerExperience(), createExperience(), updateExperience(), deleteExperience(), listOwnerSkills(), createSkill(), updateSkill(), deleteSkill(), slugify(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
+ * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), updateOwnerProfile(), listOwnerPortfolio(), createPortfolio(), updatePortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), updateTestimonial(), deleteTestimonial(), listMaterials(), createMaterial(), updateMaterial(), deleteMaterial(), listSlides(), updateSlide(), updateSlideOrder(), deleteSlide(), listOwnerExperience(), createExperience(), updateExperience(), deleteExperience(), listOwnerSkills(), createSkill(), updateSkill(), deleteSkill(), slugify(), validateSlideSlug(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
  * Side effects: Auth session persistence, authenticated database reads/writes, and HTTP uploads with progress callbacks
  */
 import { getSupabaseClient } from "./supabase";
@@ -334,6 +334,19 @@ export function slugify(value: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+export function validateSlideSlug(value: string, slides: Pick<Slide, "id" | "slug">[] = [], currentId?: string) {
+  const slug = value.trim();
+  if (!slug) return "Custom slug wajib diisi atau gunakan slug otomatis dari judul.";
+  if (slug.length > 80) return "Custom slug maksimal 80 karakter.";
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    return "Custom slug hanya boleh berisi huruf kecil, angka, dan tanda hubung tunggal.";
+  }
+  if (slides.some((item) => item.id !== currentId && item.slug === slug)) {
+    return "Custom slug sudah digunakan slide lain.";
+  }
+  return null;
 }
 
 function uploadToR2(

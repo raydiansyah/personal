@@ -1,13 +1,13 @@
 /**
  * Module: Public presentation page
- * Purpose: Render approved HTML/PDF slides through a custom public slug
+ * Purpose: Render approved HTML/PDF slides with learning-path navigation and presentation annotations
  * Used by: TanStack route /s/$slug
  * Dependencies: TanStack Query/Router, Cloudflare R2 public URL, slide service
  * Public functions: SlidePage()
- * Side effects: Public Supabase read and sandboxed iframe navigation; shows configuration error when R2 public URL is absent
+ * Side effects: Public Supabase read, browser fullscreen, canvas drawing, and sandboxed iframe navigation; no annotation persistence
  */
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { Link, useParams } from "@tanstack/react-router";
 import { getSlideBySlug, SlideAccessError } from "../lib/slides";
 import { useLanguage } from "../lib/language";
@@ -19,7 +19,12 @@ export function SlidePage() {
   const [activeSlug, setActiveSlug] = useState(slug ?? "");
   const [accessCode, setAccessCode] = useState("");
   const [submittedCode, setSubmittedCode] = useState("");
+  const [presentationTool, setPresentationTool] = useState<"none" | "laser" | "draw">("none");
+  const [laserPosition, setLaserPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDrawing, setIsDrawing] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const preserveFullscreenRef = useRef(false);
   const navigationPendingRef = useRef(false);
   const result = useQuery({
@@ -115,6 +120,78 @@ export function SlidePage() {
     navigationPendingRef.current = preserveFullscreenRef.current;
   }
 
+  function resizeCanvas() {
+    const stage = stageRef.current;
+    const canvas = canvasRef.current;
+    if (!stage || !canvas) return;
+    const ratio = window.devicePixelRatio || 1;
+    const bounds = stage.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(bounds.width * ratio));
+    canvas.height = Math.max(1, Math.round(bounds.height * ratio));
+    canvas.style.width = `${bounds.width}px`;
+    canvas.style.height = `${bounds.height}px`;
+    canvas.getContext("2d")?.scale(ratio, ratio);
+  }
+
+  function clearAnnotations() {
+    const canvas = canvasRef.current;
+    const stage = stageRef.current;
+    if (!canvas || !stage) return;
+    canvas.getContext("2d")?.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
+  }
+
+  useEffect(() => {
+    resizeCanvas();
+    const observer = new ResizeObserver(resizeCanvas);
+    if (stageRef.current) observer.observe(stageRef.current);
+    return () => observer.disconnect();
+  }, [slide]);
+
+  useEffect(() => {
+    clearAnnotations();
+    setLaserPosition(null);
+    setPresentationTool("none");
+  }, [activeSlug]);
+
+  function getStagePoint(event: ReactPointerEvent<HTMLDivElement | HTMLCanvasElement>) {
+    const bounds = stageRef.current?.getBoundingClientRect();
+    return bounds ? { x: event.clientX - bounds.left, y: event.clientY - bounds.top } : null;
+  }
+
+  function handleLaserMove(event: ReactPointerEvent<HTMLDivElement>) {
+    if (presentationTool !== "laser") return;
+    setLaserPosition(getStagePoint(event));
+  }
+
+  function startDrawing(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (presentationTool !== "draw") return;
+    const point = getStagePoint(event);
+    const context = canvasRef.current?.getContext("2d");
+    if (!point || !context) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    context.beginPath();
+    context.moveTo(point.x, point.y);
+    context.strokeStyle = "#ff8a65";
+    context.lineWidth = 4;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    setIsDrawing(true);
+  }
+
+  function draw(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (!isDrawing || presentationTool !== "draw") return;
+    const point = getStagePoint(event);
+    const context = canvasRef.current?.getContext("2d");
+    if (!point || !context) return;
+    context.lineTo(point.x, point.y);
+    context.stroke();
+  }
+
+  function stopDrawing(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    setIsDrawing(false);
+  }
+
   const accessError = result.error instanceof SlideAccessError ? result.error.code : null;
   if (result.isLoading) return <section className="page section"><p className="eyebrow">{t(language, "slide.title")}</p><h1>{language === "id" ? "Memuat slide…" : "Loading slide…"}</h1></section>;
   if (accessError === "access_required" || accessError === "invalid_access_code")
@@ -154,15 +231,16 @@ export function SlidePage() {
       <p className="eyebrow">{t(language, 'slide.title')} · {slide.mime_type}</p>
       <h1>{slide.judul}</h1>
       <div ref={viewerRef} className="slide-viewer-shell">
-        <div className="slide-viewer-toolbar"><span>{language === "id" ? "Material slide" : "Slide material"}</span><button className="button" type="button" onClick={() => void toggleFullscreen()}>{language === "id" ? "Layar penuh" : "Fullscreen"} ⛶</button></div>
-      <div
-        style={{
-          minHeight: "70vh",
-          border: "1px solid #ffffff20",
-          borderRadius: 24,
-          overflow: "hidden",
-        }}
-      >
+        <div className="slide-viewer-toolbar">
+          <span>{language === "id" ? "Material slide" : "Slide material"}</span>
+          <div className="slide-presenter-tools" aria-label={language === "id" ? "Alat presentasi" : "Presentation tools"}>
+            <button className={`button ${presentationTool === "laser" ? "active" : ""}`} type="button" onClick={() => setPresentationTool((current) => current === "laser" ? "none" : "laser")}>{language === "id" ? "Laser" : "Laser"}</button>
+            <button className={`button ${presentationTool === "draw" ? "active" : ""}`} type="button" onClick={() => setPresentationTool((current) => current === "draw" ? "none" : "draw")}>{language === "id" ? "Coret" : "Draw"}</button>
+            {presentationTool === "draw" && <button className="button" type="button" onClick={clearAnnotations}>{language === "id" ? "Hapus coretan" : "Clear"}</button>}
+            <button className="button" type="button" onClick={() => void toggleFullscreen()}>{language === "id" ? "Layar penuh" : "Fullscreen"} ⛶</button>
+          </div>
+        </div>
+      <div ref={stageRef} className="slide-viewer-stage" onPointerMove={handleLaserMove} onPointerLeave={() => setLaserPosition(null)}>
         <iframe
           title={slide.judul}
           src={url}
@@ -172,8 +250,14 @@ export function SlidePage() {
           style={{ width: "100%", height: "70vh", border: 0 }}
           allowFullScreen
         />
+        <div className={`slide-laser-layer ${presentationTool === "laser" ? "is-active" : ""}`} aria-hidden="true" onPointerMove={handleLaserMove} />
+        <canvas ref={canvasRef} className={`slide-annotation-canvas ${presentationTool === "draw" ? "is-active" : ""}`} onPointerDown={startDrawing} onPointerMove={draw} onPointerUp={stopDrawing} onPointerCancel={stopDrawing} aria-label={language === "id" ? "Kanvas coretan" : "Drawing canvas"} />
+        {presentationTool === "laser" && laserPosition && <span className="slide-laser-dot" style={{ left: laserPosition.x, top: laserPosition.y }} aria-hidden="true" />}
       </div>
-      {context && context.slides.length > 1 && (() => { const index = context.slides.findIndex((item) => item.id === slide.id); const previous = index > 0 ? context.slides[index - 1] : null; const next = index >= 0 && index < context.slides.length - 1 ? context.slides[index + 1] : null; return <nav className="slide-navigation" aria-label={language === "id" ? "Navigasi slide" : "Slide navigation"}><div>{previous ? <button className="button" type="button" onClick={() => { keepFullscreenOnNavigation(); goToSlide(previous.slug); }}>← {language === "id" ? "Sebelumnya" : "Previous"}</button> : <span />}</div><span className="slide-position">{index + 1} / {context.slides.length}</span><div>{next ? <button className="button primary" type="button" onClick={() => { keepFullscreenOnNavigation(); goToSlide(next.slug); }}>{language === "id" ? "Berikutnya" : "Next"} →</button> : <span />}</div></nav>; })()}
+      {context && context.slides.length > 1 && (() => { const index = context.slides.findIndex((item) => item.id === slide.id); const previous = index > 0 ? context.slides[index - 1] : null; const next = index >= 0 && index < context.slides.length - 1 ? context.slides[index + 1] : null; return <>
+        <nav className="slide-navigation" aria-label={language === "id" ? "Navigasi slide" : "Slide navigation"}><div>{previous ? <button className="button" type="button" onClick={() => { keepFullscreenOnNavigation(); goToSlide(previous.slug); }}>← {language === "id" ? "Sebelumnya" : "Previous"}</button> : <span />}</div><span className="slide-position">{index + 1} / {context.slides.length}</span><div>{next ? <button className="button primary" type="button" onClick={() => { keepFullscreenOnNavigation(); goToSlide(next.slug); }}>{language === "id" ? "Berikutnya" : "Next"} →</button> : <span />}</div></nav>
+        <nav className="slide-learning-path" aria-label={language === "id" ? "Learning path" : "Learning path"}><span className="slide-learning-path-label">{language === "id" ? "Learning path" : "Learning path"}</span><div className="slide-learning-path-list">{context.slides.map((item, itemIndex) => <button key={item.id} className={`slide-learning-path-item ${item.id === slide.id ? "active" : ""}`} type="button" aria-current={item.id === slide.id ? "step" : undefined} onClick={() => { if (item.id === slide.id) return; keepFullscreenOnNavigation(); goToSlide(item.slug); }}><span>{String(itemIndex + 1).padStart(2, "0")}</span><strong>{item.judul}</strong></button>)}</div></nav>
+      </>; })()}
       </div>
     </section>
   );
