@@ -820,6 +820,7 @@ function SlideView({
 }) {
   const [query, setQuery] = useState("");
   const [mime, setMime] = useState("");
+  const [visibility, setVisibility] = useState("visible");
   const [selected, setSelected] = useState<string[]>([]);
   const [title, setTitle] = useState("");
   const [customSlug, setCustomSlug] = useState("");
@@ -853,12 +854,13 @@ function SlideView({
         (item) =>
           (!activeMaterialId || item.material_id === activeMaterialId) &&
           (!mime || item.mime_type === mime) &&
+          (visibility === "all" || String(item.status_tampil) === (visibility === "visible" ? "true" : "false")) &&
           (!query ||
             `${item.judul} ${item.slug}`
               .toLowerCase()
               .includes(query.toLowerCase())),
       ),
-    [activeMaterialId, data, mime, query],
+    [activeMaterialId, data, mime, query, visibility],
   );
   const allSelected =
     filtered.length > 0 && filtered.every((item) => selected.includes(item.id));
@@ -1039,6 +1041,15 @@ function SlideView({
       );
     }
   }
+  async function toggleVisibility(item: Slide) {
+    try {
+      await updateSlide(item.id, { status_tampil: !item.status_tampil });
+      setStatus(item.status_tampil ? "Slide hidden." : "Slide visible.");
+      onChanged();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Failed to update slide visibility.");
+    }
+  }
   async function reorder(targetId: string) {
     if (!draggedId || draggedId === targetId) return;
     const next = data
@@ -1185,6 +1196,11 @@ function SlideView({
           <option value="text/html">HTML</option>
           <option value="application/pdf">PDF</option>
         </select>
+        <select value={visibility} onChange={(event) => setVisibility(event.target.value)} aria-label="Filter slide visibility">
+          <option value="visible">Visible</option>
+          <option value="hidden">Hidden</option>
+          <option value="all">All visibility</option>
+        </select>
         <button
           className="dashboard-primary-action dashboard-toolbar-create"
           type="button"
@@ -1227,6 +1243,7 @@ function SlideView({
               <th>Preview</th>
               <th>Title</th>
               <th>Type</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -1259,16 +1276,19 @@ function SlideView({
                   <small>{item.slug}</small>
                 </td>
                 <td>{item.mime_type === "text/html" ? "HTML" : "PDF"}</td>
+                <td><span className={`dashboard-status ${item.status_tampil ? "status-live" : "status-arsip"}`}>{item.status_tampil ? "Visible" : "Hidden"}</span></td>
                 <td>
                   <div className="dashboard-row-actions">
-                    <a
-                      className="dashboard-table-link"
-                      href={`/s/${item.slug}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      View
-                    </a>
+                    {item.status_tampil && (
+                      <a
+                        className="dashboard-table-link"
+                        href={`/s/${item.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        View
+                      </a>
+                    )}
                     <button
                       className="dashboard-table-action"
                       type="button"
@@ -1279,9 +1299,9 @@ function SlideView({
                     <button
                       className="dashboard-table-action"
                       type="button"
-                      onClick={() => void hide([item.id])}
+                      onClick={() => void toggleVisibility(item)}
                     >
-                      Delete
+                      {item.status_tampil ? "Hide" : "Unhide"}
                     </button>
                   </div>
                 </td>

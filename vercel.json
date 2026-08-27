@@ -8,7 +8,9 @@
     { "source": "/services", "destination": "/" },
     { "source": "/contact", "destination": "/" },
     { "source": "/auth/login", "destination": "/" },
-    { "source": "/admin", "destination": "/" }
+    { "source": "/admin", "destination": "/" },
+    { "source": "/dashboard", "destination": "/" },
+    { "source": "/dashboard/:path*", "destination": "/" }
   ],
   "headers": [
     {

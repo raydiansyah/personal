@@ -203,7 +203,7 @@ export async function listSlides(): Promise<Slide[]> {
 }
 export async function updateSlide(
   id: string,
-  input: Partial<Pick<Slide, "judul" | "slug" | "material_id" | "urutan">>,
+  input: Partial<Pick<Slide, "judul" | "slug" | "material_id" | "urutan" | "status_tampil">>,
 ) {
   const { error } = await getSupabaseClient()
     .from("slide_presentasi")
