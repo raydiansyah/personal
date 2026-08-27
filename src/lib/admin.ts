@@ -3,7 +3,7 @@
  * Purpose: Provide authenticated Supabase operations for content management and inbox review
  * Used by: src/admin.tsx
  * Dependencies: Supabase browser client for metadata/Auth, shared file validation, and Cloudflare R2 presign endpoint for file bytes
- * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), updateOwnerProfile(), listOwnerPortfolio(), createPortfolio(), updatePortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), updateTestimonial(), deleteTestimonial(), listMaterials(), createMaterial(), updateMaterial(), deleteMaterial(), listSlides(), updateSlide(), updateSlideOrder(), deleteSlide(), listOwnerExperience(), createExperience(), updateExperience(), deleteExperience(), listOwnerSkills(), createSkill(), updateSkill(), deleteSkill(), slugify(), validateSlideSlug(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
+ * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), updateOwnerProfile(), listOwnerPortfolio(), createPortfolio(), updatePortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), updateTestimonial(), deleteTestimonial(), listMaterials(), createMaterial(), updateMaterial(), deleteMaterial(), listSlides(), updateSlide(), replaceSlideFile(), updateSlideOrder(), deleteSlide(), listOwnerExperience(), createExperience(), updateExperience(), deleteExperience(), listOwnerSkills(), createSkill(), updateSkill(), deleteSkill(), slugify(), validateSlideSlug(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
  * Side effects: Auth session persistence, authenticated database reads/writes, and HTTP uploads with progress callbacks
  */
 import { getSupabaseClient } from "./supabase";
@@ -405,7 +405,6 @@ export async function uploadSlide(
   const normalizedSlug = slugify(slug || judul);
   if (!normalizedSlug)
     throw new Error("Judul slide harus menghasilkan slug yang valid.");
-  options.onProgress?.({ phase: "preparing", percent: 0 });
   const supabase = getSupabaseClient();
   const {
     data: { user },
@@ -415,36 +414,7 @@ export async function uploadSlide(
   } = await supabase.auth.getSession();
   if (!user || !session?.access_token)
     throw new Error("Owner session required.");
-  const endpoint = import.meta.env.VITE_R2_UPLOAD_ENDPOINT;
-  if (!endpoint) throw new Error("Missing VITE_R2_UPLOAD_ENDPOINT.");
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 30_000);
-  let presign: Response;
-  try {
-    presign = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({
-        filename: file.name,
-        contentType: file.type,
-        slug: normalizedSlug,
-      }),
-      signal: controller.signal,
-    });
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError")
-      throw new Error("Server upload tidak merespons dalam 30 detik.");
-    throw new Error("Gagal menghubungi server upload.");
-  } finally {
-    window.clearTimeout(timeout);
-  }
-  if (!presign.ok)
-    throw new Error(`Gagal menyiapkan upload (HTTP ${presign.status}).`);
-  const { url, key } = (await presign.json()) as { url: string; key: string };
-  await uploadToR2(url, file, options.onProgress);
+  const { key } = await uploadSlideAsset(file, normalizedSlug, session.access_token, options.onProgress);
   options.onProgress?.({ phase: "saving", percent: 100 });
   const inserted = await supabase.from("slide_presentasi").insert({
     judul: judul.trim(),
@@ -459,6 +429,51 @@ export async function uploadSlide(
     throw new Error(
       `File sudah terupload, tetapi metadata gagal disimpan: ${inserted.error.message}`,
     );
+}
+
+async function uploadSlideAsset(
+  file: File,
+  slug: string,
+  accessToken: string,
+  onProgress?: (progress: UploadProgress) => void,
+) {
+  onProgress?.({ phase: "preparing", percent: 0 });
+  const endpoint = import.meta.env.VITE_R2_UPLOAD_ENDPOINT;
+  if (!endpoint) throw new Error("Missing VITE_R2_UPLOAD_ENDPOINT.");
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 30_000);
+  let presign: Response;
+  try {
+    presign = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify({ filename: file.name, contentType: file.type, slug }),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw new Error("Server upload tidak merespons dalam 30 detik.");
+    throw new Error("Gagal menghubungi server upload.");
+  } finally {
+    window.clearTimeout(timeout);
+  }
+  if (!presign.ok) throw new Error(`Gagal menyiapkan upload (HTTP ${presign.status}).`);
+  const { url, key } = (await presign.json()) as { url: string; key: string };
+  await uploadToR2(url, file, onProgress);
+  return { key };
+}
+
+export async function replaceSlideFile(id: string, file: File, slug: string, onProgress?: (progress: UploadProgress) => void) {
+  const validationError = validateUploadFile(file, SLIDE_RULE);
+  if (validationError) throw new Error(validationError);
+  const normalizedSlug = slugify(slug);
+  if (!normalizedSlug) throw new Error("Slug slide tidak valid.");
+  const supabase = getSupabaseClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Owner session required.");
+  const { key } = await uploadSlideAsset(file, normalizedSlug, session.access_token, onProgress);
+  onProgress?.({ phase: "saving", percent: 100 });
+  const { error } = await supabase.from("slide_presentasi").update({ storage_path: key, mime_type: file.type }).eq("id", id);
+  if (error) throw new Error(`File baru terupload, tetapi metadata gagal diperbarui: ${error.message}`);
 }
 export async function uploadPortfolioCover(
   file: File,

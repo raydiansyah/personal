@@ -47,6 +47,7 @@ import {
   updateSkill,
   uploadPortfolioCover,
   uploadSlide,
+  replaceSlideFile,
   type Experience,
   type Material,
   type Slide,
@@ -826,6 +827,8 @@ function SlideView({
   const [fileError, setFileError] = useState("");
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<Slide | null>(null);
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [editFileError, setEditFileError] = useState("");
   const [materialId, setMaterialId] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [createSlideModal, setCreateSlideModal] = useState(false);
@@ -985,6 +988,8 @@ function SlideView({
     }
   }
   function edit(item: Slide) {
+    setEditFile(null);
+    setEditFileError("");
     setEditing(item);
   }
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
@@ -994,20 +999,31 @@ function SlideView({
     const next = String(form.get("judul") ?? "").trim();
     const nextSlug = String(form.get("slug") ?? "").trim();
     if (!next) return;
+    const fileError = editFile ? validateUploadFile(editFile, SLIDE_RULE) : "";
+    if (fileError) {
+      setEditFileError(fileError);
+      return;
+    }
     const slugError = validateSlideSlug(nextSlug, data, editing.id);
     if (slugError) {
       setStatus(slugError);
       return;
     }
     try {
+      setSlideSaving(true);
       await updateSlide(editing.id, { judul: next, slug: nextSlug });
+      if (editFile) await replaceSlideFile(editing.id, editFile, nextSlug);
       setEditing(null);
+      setEditFile(null);
+      setEditFileError("");
       setStatus("Slide updated.");
       onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to update slide.",
       );
+    } finally {
+      setSlideSaving(false);
     }
   }
   async function hide(ids: string[]) {
@@ -1444,8 +1460,27 @@ function SlideView({
             </label>
             <p className="dashboard-modal-note">
               File type: {editing.mime_type === "text/html" ? "HTML" : "PDF"}.
-              The uploaded file is preserved.
+              Pilih file baru jika ingin mengganti asset slide.
             </p>
+            <label>
+              Replace file (optional)
+              <input
+                name="edit_file"
+                type="file"
+                accept=".html,.pdf,text/html,application/pdf"
+                aria-describedby="edit-slide-file-help edit-slide-file-error"
+                onChange={(event) => {
+                  const next = event.target.files?.[0] ?? null;
+                  setEditFile(next);
+                  setEditFileError(next ? validateUploadFile(next, SLIDE_RULE) : "");
+                }}
+              />
+              <small id="edit-slide-file-help" className="dashboard-upload-help">
+                HTML atau PDF · ekstensi .html/.pdf · maksimal 10 MB
+              </small>
+              {editFile && <small className="dashboard-upload-file">{editFile.name} · {formatFileSize(editFile.size)}</small>}
+              {editFileError && <small id="edit-slide-file-error" className="dashboard-form-error" role="alert">{editFileError}</small>}
+            </label>
             <div className="dashboard-modal-actions">
               <button
                 className="dashboard-table-action"
@@ -1454,8 +1489,8 @@ function SlideView({
               >
                 Cancel
               </button>
-              <button className="dashboard-primary-action" type="submit">
-                Save changes <DashboardIcon name="arrow" />
+              <button className="dashboard-primary-action" type="submit" disabled={slideSaving}>
+                {slideSaving ? "Saving…" : "Save changes"} <DashboardIcon name="arrow" />
               </button>
             </div>
           </form>
