@@ -1,14 +1,17 @@
 /**
  * Module: Owner dashboard pages
- * Purpose: Provide a focused, route-based content management dashboard with material access controls for the owner
+ * Purpose: Provide a consistent, responsive, searchable content-management dashboard with accessible CRUD feedback
  * Used by: TanStack dashboard routes under /dashboard
- * Dependencies: React, TanStack Router, Supabase owner data service, shared upload validation, slide preview component
+ * Dependencies: React, TanStack Router, Supabase owner data service, shared upload validation, slide preview component, dashboard.css
  * Public functions: DashboardApp()
- * Side effects: Reads authenticated owner data, writes profile/content changes, persists theme preference, and navigates to login when unauthenticated
+ * Side effects: Reads/writes owner content, persists theme/sidebar preferences, locks body scroll for overlays, and performs dashboard navigation
  */
 import {
+  useDeferredValue,
   useEffect,
+  useId,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -111,10 +114,14 @@ function DashboardIcon({ name }: { name: string }) {
     inbox: "M4 5h16v14H4zM4 14h4l2 3h4l2-3h4",
     search: "m20 20-4.2-4.2M10.8 17a6.2 6.2 0 1 1 0-12.4 6.2 6.2 0 0 1 0 12.4Z",
     arrow: "M5 12h13m-5-5 5 5-5 5",
+    external: "M14 5h5v5m0-5-8 8m8 0v6H5V5h6",
     logout: "M10 5H5v14h5m5-4 4-3-4-3m4 3H9",
     sun: "M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z",
     moon: "M20 15.5A8 8 0 0 1 8.5 4 8 8 0 1 0 20 15.5Z",
     chevron: "m15 6-6 6 6 6",
+    menu: "M4 7h16M4 12h16M4 17h16",
+    close: "M6 6l12 12M18 6 6 18",
+    user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 8a7 7 0 0 1 14 0",
     spark: "m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3Zm6 13 .7 2.3L21 19l-2.3.7L18 22l-.7-2.3L15 19l2.3-.7L18 16Z",
   };
   return (
@@ -138,14 +145,30 @@ function DashboardNav({
   onLogout,
   collapsed,
   onToggle,
+  mobileOpen,
+  onMobileClose,
 }: {
   pathname: string;
   onLogout: () => void;
   collapsed: boolean;
   onToggle: () => void;
+  mobileOpen: boolean;
+  onMobileClose: () => void;
 }) {
   return (
-    <aside className="dashboard-sidebar">
+    <>
+      <button
+        className={`dashboard-sidebar-backdrop${mobileOpen ? " is-open" : ""}`}
+        type="button"
+        aria-label="Close navigation"
+        tabIndex={mobileOpen ? 0 : -1}
+        onClick={onMobileClose}
+      />
+      <aside
+        id="dashboard-navigation"
+        className={`dashboard-sidebar${mobileOpen ? " is-mobile-open" : ""}`}
+        aria-label="Dashboard navigation"
+      >
       <div className="dashboard-sidebar-head">
         <Link
           className="dashboard-brand"
@@ -155,14 +178,8 @@ function DashboardNav({
         >
           <span className="dashboard-brand-mark">
             <img
-              className="dashboard-brand-logo dashboard-brand-logo-dark"
+              className="dashboard-brand-logo"
               src="/brand-submark.png"
-              alt=""
-              aria-hidden="true"
-            />
-            <img
-              className="dashboard-brand-logo dashboard-brand-logo-light"
-              src="/brand-submark-light.svg"
               alt=""
               aria-hidden="true"
             />
@@ -178,6 +195,14 @@ function DashboardNav({
         >
           <DashboardIcon name="chevron" />
         </button>
+        <button
+          className="dashboard-sidebar-mobile-close"
+          type="button"
+          aria-label="Close navigation"
+          onClick={onMobileClose}
+        >
+          <DashboardIcon name="close" />
+        </button>
       </div>
       <div className="dashboard-nav">
         {navGroups.map((group) => (
@@ -189,6 +214,7 @@ function DashboardNav({
                 className={`dashboard-nav-link${pathname === item.path || (item.path !== "/dashboard" && pathname.startsWith(item.path)) ? " is-active" : ""}`}
                 to={item.path}
                 title={item.label}
+                onClick={onMobileClose}
               >
                 <DashboardIcon name={item.icon} />
                 <span>{item.label}</span>
@@ -199,7 +225,7 @@ function DashboardNav({
       </div>
       <div className="dashboard-sidebar-footer">
         <Link className="dashboard-nav-link" to="/" title="View site">
-          <DashboardIcon name="arrow" />
+          <DashboardIcon name="external" />
           <span>View site</span>
         </Link>
         <button
@@ -213,7 +239,8 @@ function DashboardNav({
         </button>
         <small>v{APP_VERSION}</small>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
 
@@ -361,13 +388,45 @@ function DashboardModal({
   children: ReactNode;
   onClose: () => void;
 }) {
+  const titleId = useId();
+  const modalRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const focusableSelector =
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]';
+    const initialFocus =
+      modalRef.current?.querySelector<HTMLElement>(
+        "input:not([disabled]), select:not([disabled]), textarea:not([disabled])",
+      ) ?? modalRef.current?.querySelector<HTMLElement>(focusableSelector);
+    initialFocus?.focus({ preventScroll: true });
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") onCloseRef.current();
+      if (event.key !== "Tab" || !modalRef.current) return;
+      const focusable = Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(focusableSelector),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus({ preventScroll: true });
+    };
+  }, []);
   return (
     <div
       className="dashboard-modal-backdrop"
@@ -377,15 +436,16 @@ function DashboardModal({
       }}
     >
       <section
+        ref={modalRef}
         className="dashboard-modal"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="dashboard-modal-title"
+        aria-labelledby={titleId}
       >
         <div className="dashboard-modal-heading">
           <div>
             <p className="dashboard-kicker">Content editor</p>
-            <h2 id="dashboard-modal-title">{title}</h2>
+            <h2 id={titleId}>{title}</h2>
           </div>
           <button
             className="dashboard-modal-close"
@@ -393,11 +453,247 @@ function DashboardModal({
             aria-label="Close editor"
             onClick={onClose}
           >
-            ×
+            <DashboardIcon name="close" />
           </button>
         </div>
         {children}
       </section>
+    </div>
+  );
+}
+
+function DashboardNotice({
+  message,
+  onDismiss,
+}: {
+  message: string;
+  onDismiss: () => void;
+}) {
+  const onDismissRef = useRef(onDismiss);
+  onDismissRef.current = onDismiss;
+  const isSuccess = /added|updated|saved|hidden|visible|archived|copied|tersimpan|disimpan|disembunyikan/i.test(message);
+  const isError = !isSuccess;
+  useEffect(() => {
+    if (!message || isError) return;
+    const timeout = window.setTimeout(() => onDismissRef.current(), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [isError, message]);
+  if (!message) return null;
+  return (
+    <div
+      className={`dashboard-toast${isError ? " is-error" : " is-success"}`}
+      role={isError ? "alert" : "status"}
+      aria-live={isError ? "assertive" : "polite"}
+    >
+      <span className="dashboard-toast-icon" aria-hidden="true">
+        {isError ? "!" : "✓"}
+      </span>
+      <span>{message}</span>
+      <button type="button" aria-label="Dismiss notification" onClick={onDismiss}>
+        <DashboardIcon name="close" />
+      </button>
+    </div>
+  );
+}
+
+type DashboardRoutePath =
+  | "/dashboard"
+  | "/dashboard/portfolio"
+  | "/dashboard/slide"
+  | "/dashboard/experience"
+  | "/dashboard/skills"
+  | "/dashboard/testimonials"
+  | "/dashboard/messages";
+
+type DashboardSearchEntry = {
+  id: string;
+  label: string;
+  meta: string;
+  path: DashboardRoutePath;
+  searchText: string;
+};
+
+function GlobalSearch({ data }: { data: DashboardData }) {
+  const navigate = useNavigate();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const entries = useMemo<DashboardSearchEntry[]>(() => {
+    const destinations: DashboardSearchEntry[] = navGroups.flatMap((group) =>
+      group.items.map((item) => ({
+        id: `route-${item.path}`,
+        label: item.label,
+        meta: `${group.label} page`,
+        path: item.path as DashboardRoutePath,
+        searchText: `${item.label} ${group.label}`.toLowerCase(),
+      })),
+    );
+    return [
+      ...destinations,
+      ...data.portfolio.map((item) => ({
+        id: `portfolio-${item.id}`,
+        label: item.judul,
+        meta: `Portfolio · ${item.kategori}`,
+        path: "/dashboard/portfolio" as const,
+        searchText: `${item.judul} ${item.slug} ${item.kategori}`.toLowerCase(),
+      })),
+      ...data.slides.map((item) => ({
+        id: `slide-${item.id}`,
+        label: item.judul,
+        meta: "Slide",
+        path: "/dashboard/slide" as const,
+        searchText: `${item.judul} ${item.slug}`.toLowerCase(),
+      })),
+      ...data.experience.map((item) => ({
+        id: `experience-${item.id}`,
+        label: item.judul,
+        meta: `Experience · ${item.periode}`,
+        path: "/dashboard/experience" as const,
+        searchText: `${item.judul} ${item.periode} ${item.stack}`.toLowerCase(),
+      })),
+      ...data.skills.map((item) => ({
+        id: `skill-${item.id}`,
+        label: item.nama,
+        meta: `Skill · ${item.kategori}`,
+        path: "/dashboard/skills" as const,
+        searchText: `${item.nama} ${item.kategori}`.toLowerCase(),
+      })),
+      ...data.testimonials.map((item) => ({
+        id: `testimonial-${item.id}`,
+        label: item.nama,
+        meta: "Testimonial",
+        path: "/dashboard/testimonials" as const,
+        searchText: `${item.nama} ${item.jabatan ?? ""} ${item.kutipan}`.toLowerCase(),
+      })),
+      ...data.messages.map((item) => ({
+        id: `message-${item.id}`,
+        label: item.nama,
+        meta: `Message · ${item.status}`,
+        path: "/dashboard/messages" as const,
+        searchText: `${item.nama} ${item.email} ${item.status}`.toLowerCase(),
+      })),
+    ];
+  }, [data]);
+  const results = useMemo(
+    () =>
+      (deferredQuery
+        ? entries.filter((entry) => entry.searchText.includes(deferredQuery))
+        : entries.filter((entry) => entry.id.startsWith("route-"))
+      ).slice(0, 8),
+    [deferredQuery, entries],
+  );
+
+  useEffect(() => setActiveIndex(0), [deferredQuery]);
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isFormField = target?.matches("input, textarea, select, [contenteditable='true']");
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen(true);
+        inputRef.current?.focus();
+      } else if (event.key === "/" && !isFormField) {
+        event.preventDefault();
+        setOpen(true);
+        inputRef.current?.focus();
+      } else if (event.key === "Escape") {
+        setOpen(false);
+        inputRef.current?.blur();
+      }
+    };
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, []);
+
+  function selectResult(entry: DashboardSearchEntry) {
+    setQuery("");
+    setOpen(false);
+    void navigate({ to: entry.path });
+  }
+
+  return (
+    <div className="dashboard-global-search-shell" ref={rootRef}>
+      <label className="dashboard-global-search">
+        <DashboardIcon name="search" />
+        <span className="sr-only">Search all dashboard resources</span>
+        <input
+          ref={inputRef}
+          role="combobox"
+          aria-controls={listId}
+          aria-expanded={open}
+          aria-activedescendant={open && results[activeIndex] ? `${listId}-${results[activeIndex].id}` : undefined}
+          autoComplete="off"
+          placeholder="Search workspace"
+          value={query}
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setActiveIndex((current) => Math.min(current + 1, results.length - 1));
+            } else if (event.key === "ArrowUp") {
+              event.preventDefault();
+              setActiveIndex((current) => Math.max(current - 1, 0));
+            } else if (event.key === "Enter" && results[activeIndex]) {
+              event.preventDefault();
+              selectResult(results[activeIndex]);
+            }
+          }}
+        />
+        <kbd>⌘K</kbd>
+      </label>
+      {open && (
+        <div className="dashboard-search-popover" role="listbox" id={listId} aria-label="Dashboard search results">
+          <div className="dashboard-search-summary">
+            <span>{deferredQuery ? "Search results" : "Quick navigation"}</span>
+            <small>{results.length} shown</small>
+          </div>
+          {results.length ? (
+            results.map((entry, index) => (
+              <button
+                id={`${listId}-${entry.id}`}
+                className={index === activeIndex ? "is-active" : ""}
+                type="button"
+                role="option"
+                aria-selected={index === activeIndex}
+                key={entry.id}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => selectResult(entry)}
+              >
+                <span>
+                  <strong>{entry.label}</strong>
+                  <small>{entry.meta}</small>
+                </span>
+                <DashboardIcon name="arrow" />
+              </button>
+            ))
+          ) : (
+            <div className="dashboard-search-empty">
+              <strong>No results found</strong>
+              <span>Try a title, category, person, or page name.</span>
+            </div>
+          )}
+          <div className="dashboard-search-hint">
+            <span>↑↓ Navigate</span>
+            <span>↵ Open</span>
+            <span>Esc Close</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -407,7 +703,7 @@ function PortfolioView({
   onChanged,
 }: {
   data: Portfolio[];
-  onChanged: () => void;
+  onChanged: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -449,6 +745,7 @@ function PortfolioView({
   }
   async function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     const target = event.currentTarget;
     const form = new FormData(target);
     const validationError = validateUploadFile(coverFile, PORTFOLIO_COVER_RULE);
@@ -472,12 +769,12 @@ function PortfolioView({
         url_gambar:
           uploadedCover || String(form.get("url_gambar") ?? "").trim() || null,
       });
+      await onChanged();
       target.reset();
       setCoverFile(null);
       setCoverError("");
       setCreating(false);
       setStatus("Portfolio added.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to add portfolio.",
@@ -491,8 +788,9 @@ function PortfolioView({
   }
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editing) return;
+    if (!editing || saving) return;
     const form = new FormData(event.currentTarget);
+    setSaving(true);
     try {
       await updatePortfolio(editing.id, {
         judul: String(form.get("judul") ?? "").trim(),
@@ -504,13 +802,15 @@ function PortfolioView({
         url_demo: String(form.get("url_demo") ?? "").trim() || null,
         url_gambar: String(form.get("url_gambar") ?? "").trim() || null,
       });
+      await onChanged();
       setEditing(null);
       setStatus("Portfolio updated.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to update portfolio.",
       );
+    } finally {
+      setSaving(false);
     }
   }
   async function hide(ids: string[]) {
@@ -518,9 +818,9 @@ function PortfolioView({
       return;
     try {
       await Promise.all(ids.map((id) => deletePortfolio(id)));
+      await onChanged();
       setSelected([]);
       setStatus(`${ids.length} portfolio item(s) hidden.`);
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to hide portfolio.",
@@ -535,11 +835,7 @@ function PortfolioView({
       actionLabel="Add portfolio"
       actionPath="/dashboard/portfolio"
     >
-      {status && (
-        <p className="dashboard-form-status" role="status">
-          {status}
-        </p>
-      )}
+      <DashboardNotice message={status} onDismiss={() => setStatus("")} />
       <div className="dashboard-toolbar">
         <label className="dashboard-search">
           <DashboardIcon name="search" />
@@ -701,8 +997,8 @@ function PortfolioView({
               >
                 Cancel
               </button>
-              <button className="dashboard-primary-action" type="submit">
-                Save changes <DashboardIcon name="arrow" />
+              <button className="dashboard-primary-action" type="submit" disabled={saving}>
+                {saving ? "Saving…" : "Save changes"} <DashboardIcon name="arrow" />
               </button>
             </div>
           </form>
@@ -816,7 +1112,7 @@ function SlideView({
 }: {
   data: Slide[];
   materials: Material[];
-  onChanged: () => void;
+  onChanged: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [mime, setMime] = useState("");
@@ -902,7 +1198,7 @@ function SlideView({
   }
   async function saveMaterialAccess(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!shareMaterial) return;
+    if (!shareMaterial || slideSaving) return;
     const nextCode = materialAccessMode === "auto"
       ? `RD-${crypto.randomUUID().replaceAll("-", "").slice(0, 8).toUpperCase()}`
       : materialAccessMode === "custom" ? materialAccessCode.trim() : "";
@@ -910,26 +1206,31 @@ function SlideView({
       setStatus("Custom access code must be at least 4 characters.");
       return;
     }
+    setSlideSaving(true);
     try {
       await updateMaterial(shareMaterial.id, {
         akses_kode: nextCode || null,
         akses_berakhir_pada: materialExpiry ? new Date(materialExpiry).toISOString() : null,
       });
-      setShareMaterial((current) => current ? { ...current, akses_kode: nextCode || null, akses_berakhir_pada: materialExpiry ? new Date(materialExpiry).toISOString() : null } : current);
+      await onChanged();
       setMaterialAccessCode(nextCode);
+      setShareMaterial(null);
       setStatus("Material access settings saved.");
-      onChanged();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to save material access.");
+    } finally {
+      setSlideSaving(false);
     }
   }
   async function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (slideSaving) return;
     const validationError = validateUploadFile(file, SLIDE_RULE);
     if (validationError) {
       setFileError(validationError);
       return;
     }
+    setSlideSaving(true);
     try {
       const form = new FormData(event.currentTarget);
       const requestedSlug = String(form.get("slug") ?? "").trim() || slugify(title);
@@ -964,7 +1265,6 @@ function SlideView({
         setStatus("Buat atau pilih material terlebih dahulu.");
         return;
       }
-      setSlideSaving(true);
       const materialSlides = data.filter(
         (item) => item.material_id === destinationMaterialId,
       );
@@ -972,6 +1272,7 @@ function SlideView({
         materialId: destinationMaterialId,
         urutan: materialSlides.length,
       });
+      await onChanged();
       setTitle("");
       setCustomSlug("");
       setFile(null);
@@ -980,7 +1281,6 @@ function SlideView({
       setCreateSlideModal(false);
       setCreateNewMaterial(false);
       event.currentTarget.reset();
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to add slide.",
@@ -1015,11 +1315,11 @@ function SlideView({
       setSlideSaving(true);
       await updateSlide(editing.id, { judul: next, slug: nextSlug });
       if (editFile) await replaceSlideFile(editing.id, editFile, nextSlug);
+      await onChanged();
       setEditing(null);
       setEditFile(null);
       setEditFileError("");
       setStatus("Slide updated.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to update slide.",
@@ -1032,9 +1332,9 @@ function SlideView({
     if (!ids.length || !window.confirm(`Hide ${ids.length} slide(s)?`)) return;
     try {
       await Promise.all(ids.map(deleteSlide));
+      await onChanged();
       setSelected([]);
       setStatus("Slide(s) hidden.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to hide slide.",
@@ -1044,8 +1344,8 @@ function SlideView({
   async function toggleVisibility(item: Slide) {
     try {
       await updateSlide(item.id, { status_tampil: !item.status_tampil });
+      await onChanged();
       setStatus(item.status_tampil ? "Slide hidden." : "Slide visible.");
-      onChanged();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to update slide visibility.");
     }
@@ -1064,8 +1364,8 @@ function SlideView({
       await updateSlideOrder(
         next.map((item, index) => ({ ...item, urutan: index })),
       );
+      await onChanged();
       setStatus("Urutan slide tersimpan.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error
@@ -1150,16 +1450,12 @@ function SlideView({
               </small>
             )}
           </label>
-          <button className="dashboard-primary-action" type="submit">
-            Add slide <DashboardIcon name="arrow" />
+          <button className="dashboard-primary-action" type="submit" disabled={slideSaving}>
+            {slideSaving ? "Uploading…" : "Add slide"} <DashboardIcon name="arrow" />
           </button>
         </form>
       )}
-      {status && (
-        <p className="dashboard-form-status" role="status">
-          {status}
-        </p>
-      )}
+      <DashboardNotice message={status} onDismiss={() => setStatus("")} />
       <div className="dashboard-toolbar">
         <select
           value={activeMaterialId}
@@ -1541,7 +1837,7 @@ function SlideView({
             {shareMaterial.akses_kode && <label>Current code<div className="dashboard-copy-field"><input value={shareMaterial.akses_kode} readOnly /><button className="dashboard-table-action" type="button" onClick={() => void copyMaterialCode()}>Copy</button></div></label>}
             <label>Expiry (optional)<input type="datetime-local" value={materialExpiry} onChange={(event) => setMaterialExpiry(event.target.value)} /></label>
             <p className="dashboard-modal-note">Without an expiry, the material link remains available until the access code is changed or removed.</p>
-            <div className="dashboard-modal-actions"><button className="dashboard-table-action" type="button" onClick={() => setShareMaterial(null)}>Cancel</button><button className="dashboard-primary-action" type="submit">Save access settings <DashboardIcon name="arrow" /></button></div>
+            <div className="dashboard-modal-actions"><button className="dashboard-table-action" type="button" onClick={() => setShareMaterial(null)}>Cancel</button><button className="dashboard-primary-action" type="submit" disabled={slideSaving}>{slideSaving ? "Saving…" : "Save access settings"} <DashboardIcon name="arrow" /></button></div>
           </form>
         </DashboardModal>
       )}
@@ -1554,13 +1850,14 @@ function TestimonialsView({
   onChanged,
 }: {
   data: Testimonial[];
-  onChanged: () => void;
+  onChanged: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [visibility, setVisibility] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<Testimonial | null>(null);
+  const [saving, setSaving] = useState(false);
   const filtered = data.filter(
     (item) =>
       (!visibility || String(item.status_tampil) === visibility) &&
@@ -1583,21 +1880,25 @@ function TestimonialsView({
   }
   async function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     const target = event.currentTarget;
     const form = new FormData(target);
+    setSaving(true);
     try {
       await createTestimonial({
         nama: String(form.get("nama") ?? ""),
         jabatan: String(form.get("jabatan") ?? ""),
         kutipan: String(form.get("kutipan") ?? ""),
       });
+      await onChanged();
       target.reset();
       setStatus("Testimonial added.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to add testimonial.",
       );
+    } finally {
+      setSaving(false);
     }
   }
   function edit(item: Testimonial) {
@@ -1605,8 +1906,9 @@ function TestimonialsView({
   }
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editing) return;
+    if (!editing || saving) return;
     const form = new FormData(event.currentTarget);
+    setSaving(true);
     try {
       await updateTestimonial(editing.id, {
         nama: String(form.get("nama") ?? "").trim(),
@@ -1614,15 +1916,17 @@ function TestimonialsView({
         kutipan: String(form.get("kutipan") ?? "").trim(),
         status_tampil: form.get("status_tampil") === "on",
       });
+      await onChanged();
       setEditing(null);
       setStatus("Testimonial updated.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error
           ? error.message
           : "Failed to update testimonial.",
       );
+    } finally {
+      setSaving(false);
     }
   }
   async function hide(ids: string[]) {
@@ -1630,9 +1934,9 @@ function TestimonialsView({
       return;
     try {
       await Promise.all(ids.map(deleteTestimonial));
+      await onChanged();
       setSelected([]);
       setStatus("Testimonial(s) hidden.");
-      onChanged();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to hide testimonial.",
@@ -1663,15 +1967,11 @@ function TestimonialsView({
           Quote
           <input name="kutipan" placeholder="Client quote" required />
         </label>
-        <button className="dashboard-primary-action" type="submit">
-          Add testimonial <DashboardIcon name="arrow" />
+        <button className="dashboard-primary-action" type="submit" disabled={saving}>
+          {saving ? "Saving…" : "Add testimonial"} <DashboardIcon name="arrow" />
         </button>
       </form>
-      {status && (
-        <p className="dashboard-form-status" role="status">
-          {status}
-        </p>
-      )}
+      <DashboardNotice message={status} onDismiss={() => setStatus("")} />
       <div className="dashboard-toolbar">
         <label className="dashboard-search">
           <DashboardIcon name="search" />
@@ -1808,8 +2108,8 @@ function TestimonialsView({
               >
                 Cancel
               </button>
-              <button className="dashboard-primary-action" type="submit">
-                Save changes <DashboardIcon name="arrow" />
+              <button className="dashboard-primary-action" type="submit" disabled={saving}>
+                {saving ? "Saving…" : "Save changes"} <DashboardIcon name="arrow" />
               </button>
             </div>
           </form>
@@ -1824,12 +2124,13 @@ function ExperienceView({
   onCreated,
 }: {
   data: Experience[];
-  onCreated: () => void;
+  onCreated: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [visibility, setVisibility] = useState("");
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<Experience | null>(null);
+  const [saving, setSaving] = useState(false);
   const filtered = data.filter(
     (item) =>
       (!visibility || String(item.status_tampil) === visibility) &&
@@ -1840,8 +2141,10 @@ function ExperienceView({
   );
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     const target = event.currentTarget;
     const form = new FormData(target);
+    setSaving(true);
     try {
       await createExperience({
         periode: String(form.get("periode") ?? ""),
@@ -1850,13 +2153,15 @@ function ExperienceView({
         stack: String(form.get("stack") ?? ""),
         urutan: Number(form.get("urutan") ?? 0),
       });
+      await onCreated();
       target.reset();
       setStatus("Experience saved.");
-      onCreated();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to save experience.",
       );
+    } finally {
+      setSaving(false);
     }
   }
   function edit(item: Experience) {
@@ -1864,8 +2169,9 @@ function ExperienceView({
   }
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editing) return;
+    if (!editing || saving) return;
     const form = new FormData(event.currentTarget);
+    setSaving(true);
     try {
       await updateExperience(editing.id, {
         periode: String(form.get("periode") ?? ""),
@@ -1875,22 +2181,24 @@ function ExperienceView({
         urutan: Number(form.get("urutan") ?? 0),
         status_tampil: form.get("status_tampil") === "on",
       });
+      await onCreated();
       setEditing(null);
       setStatus("Experience updated.");
-      onCreated();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to update experience.",
       );
+    } finally {
+      setSaving(false);
     }
   }
   async function toggleVisibility(item: Experience) {
     try {
       await updateExperience(item.id, { status_tampil: !item.status_tampil });
+      await onCreated();
       setStatus(
         item.status_tampil ? "Experience hidden." : "Experience visible.",
       );
-      onCreated();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to hide experience.",
@@ -1941,14 +2249,10 @@ function ExperienceView({
               required
             />
           </label>
-          <button className="dashboard-primary-action" type="submit">
-            Add experience <DashboardIcon name="arrow" />
+          <button className="dashboard-primary-action" type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Add experience"} <DashboardIcon name="arrow" />
           </button>
-          {status && (
-            <small className="dashboard-form-status" role="status">
-              {status}
-            </small>
-          )}
+          <DashboardNotice message={status} onDismiss={() => setStatus("")} />
         </form>
         <div>
           <div className="dashboard-toolbar">
@@ -2083,8 +2387,8 @@ function ExperienceView({
               >
                 Cancel
               </button>
-              <button className="dashboard-primary-action" type="submit">
-                Save changes <DashboardIcon name="arrow" />
+              <button className="dashboard-primary-action" type="submit" disabled={saving}>
+                {saving ? "Saving…" : "Save changes"} <DashboardIcon name="arrow" />
               </button>
             </div>
           </form>
@@ -2094,12 +2398,57 @@ function ExperienceView({
   );
 }
 
+function SkillForm({
+  item,
+  nextOrder,
+  saving,
+  onSubmit,
+  onCancel,
+}: {
+  item?: Skill;
+  nextOrder: number;
+  saving: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form className="dashboard-modal-form" onSubmit={onSubmit}>
+      <label>
+        Skill name
+        <input name="nama" defaultValue={item?.nama} placeholder="TypeScript" required />
+      </label>
+      <label>
+        Category
+        <input name="kategori" defaultValue={item?.kategori ?? "Engineering"} placeholder="Engineering" required />
+      </label>
+      <label>
+        Order
+        <input name="urutan" type="number" min="0" defaultValue={item?.urutan ?? nextOrder} required />
+      </label>
+      {item && (
+        <label className="dashboard-checkbox-field">
+          <input name="status_tampil" type="checkbox" defaultChecked={item.status_tampil} />
+          Show on website
+        </label>
+      )}
+      <div className="dashboard-modal-actions">
+        <button className="dashboard-table-action" type="button" onClick={onCancel}>
+          Cancel
+        </button>
+        <button className="dashboard-primary-action" type="submit" disabled={saving}>
+          {saving ? "Saving…" : "Save skill"} <DashboardIcon name="arrow" />
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function SkillsView({
   data,
   onChanged,
 }: {
   data: Skill[];
-  onChanged: () => void;
+  onChanged: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -2107,6 +2456,7 @@ function SkillsView({
   const [status, setStatus] = useState("");
   const [editing, setEditing] = useState<Skill | null>(null);
   const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
   const categories = Array.from(new Set(data.map((item) => item.kategori))).sort();
   const filtered = data.filter(
     (item) =>
@@ -2116,24 +2466,29 @@ function SkillsView({
   );
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     const form = new FormData(event.currentTarget);
+    setSaving(true);
     try {
       await createSkill({
         nama: String(form.get("nama") ?? "").trim(),
         kategori: String(form.get("kategori") ?? "Engineering").trim(),
         urutan: Number(form.get("urutan") ?? 0),
       });
+      await onChanged();
       setCreating(false);
       setStatus("Skill saved.");
-      onChanged();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to save skill.");
+    } finally {
+      setSaving(false);
     }
   }
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!editing) return;
+    if (!editing || saving) return;
     const form = new FormData(event.currentTarget);
+    setSaving(true);
     try {
       await updateSkill(editing.id, {
         nama: String(form.get("nama") ?? "").trim(),
@@ -2141,18 +2496,20 @@ function SkillsView({
         urutan: Number(form.get("urutan") ?? 0),
         status_tampil: form.get("status_tampil") === "on",
       });
+      await onChanged();
       setEditing(null);
       setStatus("Skill updated.");
-      onChanged();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to update skill.");
+    } finally {
+      setSaving(false);
     }
   }
   async function toggle(item: Skill) {
     try {
       await updateSkill(item.id, { status_tampil: !item.status_tampil });
+      await onChanged();
       setStatus(item.status_tampil ? "Skill hidden." : "Skill visible.");
-      onChanged();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to update skill.");
     }
@@ -2161,27 +2518,18 @@ function SkillsView({
     if (!window.confirm(`Hide ${item.nama} from the website?`)) return;
     try {
       await deleteSkill(item.id);
+      await onChanged();
       setStatus("Skill hidden.");
-      onChanged();
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Failed to hide skill.");
     }
   }
-  function SkillForm({ item, onSubmit }: { item?: Skill; onSubmit: (event: FormEvent<HTMLFormElement>) => void }) {
-    return <form className="dashboard-modal-form" onSubmit={onSubmit}>
-      <label>Skill name<input name="nama" defaultValue={item?.nama} placeholder="TypeScript" required /></label>
-      <label>Category<input name="kategori" defaultValue={item?.kategori ?? "Engineering"} placeholder="Engineering" required /></label>
-      <label>Order<input name="urutan" type="number" min="0" defaultValue={item?.urutan ?? data.length + 1} required /></label>
-      {item && <label className="dashboard-checkbox-field"><input name="status_tampil" type="checkbox" defaultChecked={item.status_tampil} /> Show on website</label>}
-      <div className="dashboard-modal-actions"><button className="dashboard-table-action" type="button" onClick={() => { setCreating(false); setEditing(null); }}>Cancel</button><button className="dashboard-primary-action" type="submit">Save skill <DashboardIcon name="arrow" /></button></div>
-    </form>;
-  }
   return <DashboardCollection title="Skills" kicker="Capabilities" description="Kelola teknologi, platform, dan kemampuan AI yang tampil di profil publik." actionLabel="View public about" actionPath="/about">
     <div className="dashboard-toolbar"><button className="dashboard-primary-action" type="button" onClick={() => setCreating(true)}><DashboardIcon name="plus" /> Add skill</button><label className="dashboard-search"><DashboardIcon name="search" /><span className="sr-only">Search skills</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search skills" /></label><select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Filter skill category"><option value="">All categories</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}</select><select value={visibility} onChange={(event) => setVisibility(event.target.value)} aria-label="Filter skill visibility"><option value="">All visibility</option><option value="true">Visible</option><option value="false">Hidden</option></select></div>
-    {status && <p className="dashboard-form-status" role="status">{status}</p>}
+    <DashboardNotice message={status} onDismiss={() => setStatus("")} />
     <div className="dashboard-table-wrap"><table className="dashboard-table"><thead><tr><th>Skill</th><th>Category</th><th>Order</th><th>Status</th><th>Action</th></tr></thead><tbody>{filtered.map((item) => <tr key={item.id}><td><strong>{item.nama}</strong></td><td>{item.kategori}</td><td>{item.urutan}</td><td><span className={`dashboard-status ${item.status_tampil ? "status-live" : "status-arsip"}`}>{item.status_tampil ? "Visible" : "Hidden"}</span></td><td><div className="dashboard-row-actions"><button className="dashboard-table-action" type="button" onClick={() => setEditing(item)}>Edit</button><button className={`dashboard-visibility-toggle${item.status_tampil ? " is-on" : ""}`} type="button" aria-pressed={item.status_tampil} onClick={() => void toggle(item)}><i aria-hidden="true" />{item.status_tampil ? "Visible" : "Hidden"}</button><button className="dashboard-table-action is-danger" type="button" onClick={() => void archive(item)}>Hide</button></div></td></tr>)}</tbody></table>{filtered.length === 0 && <DashboardEmpty title="No skills found" text="Tambahkan skill atau ubah filter." />}</div>
-    {creating && <DashboardModal title="Add skill" onClose={() => setCreating(false)}><SkillForm onSubmit={create} /></DashboardModal>}
-    {editing && <DashboardModal title="Edit skill" onClose={() => setEditing(null)}><SkillForm item={editing} onSubmit={save} /></DashboardModal>}
+    {creating && <DashboardModal title="Add skill" onClose={() => setCreating(false)}><SkillForm nextOrder={data.length + 1} saving={saving} onSubmit={create} onCancel={() => setCreating(false)} /></DashboardModal>}
+    {editing && <DashboardModal title="Edit skill" onClose={() => setEditing(null)}><SkillForm item={editing} nextOrder={data.length + 1} saving={saving} onSubmit={save} onCancel={() => setEditing(null)} /></DashboardModal>}
   </DashboardCollection>;
 }
 
@@ -2190,10 +2538,12 @@ function MessagesView({
   onChanged,
 }: {
   data: Message[];
-  onChanged: () => void;
+  onChanged: () => Promise<void>;
 }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
+  const [notice, setNotice] = useState("");
+  const [archiving, setArchiving] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const filtered = data.filter(
     (item) =>
@@ -2216,13 +2566,17 @@ function MessagesView({
     setSelected(allSelected ? [] : filtered.map((item) => item.id));
   }
   async function archive(ids: string[]) {
-    if (!ids.length) return;
+    if (!ids.length || archiving) return;
+    setArchiving(true);
     try {
       await Promise.all(ids.map((id) => updateContactStatus(id, "arsip")));
+      await onChanged();
       setSelected([]);
-      onChanged();
-    } catch {
-      /* status is reflected by the next refresh */
+      setNotice("Message archived.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Failed to archive message.");
+    } finally {
+      setArchiving(false);
     }
   }
   return (
@@ -2233,6 +2587,7 @@ function MessagesView({
       actionLabel="View public contact"
       actionPath="/contact"
     >
+      <DashboardNotice message={notice} onDismiss={() => setNotice("")} />
       <div className="dashboard-toolbar">
         <label className="dashboard-search">
           <DashboardIcon name="search" />
@@ -2258,10 +2613,10 @@ function MessagesView({
         <button
           className="dashboard-bulk-action"
           type="button"
-          disabled={!selected.length}
+          disabled={!selected.length || archiving}
           onClick={() => void archive(selected)}
         >
-          Bulk archive ({selected.length})
+          {archiving ? "Archiving…" : `Bulk archive (${selected.length})`}
         </button>
       </div>
       <div className="dashboard-table-wrap">
@@ -2392,11 +2747,30 @@ function ProfileDropdown({
   onSaved: (email: string, name: string) => void;
   onLogout: () => void;
 }) {
+  const menuId = useId();
+  const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState("");
+  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    const closeMenu = (event: PointerEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const closeWithKeyboard = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeWithKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeWithKeyboard);
+    };
+  }, []);
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (saving) return;
     const form = new FormData(event.currentTarget);
+    setSaving(true);
     try {
       await updateOwnerProfile({
         email: String(form.get("email") ?? ""),
@@ -2405,35 +2779,49 @@ function ProfileDropdown({
       });
       onSaved(String(form.get("email") ?? ""), String(form.get("name") ?? ""));
       setStatus("Profile updated.");
+      setOpen(false);
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Profile update failed.",
       );
+    } finally {
+      setSaving(false);
     }
   }
   return (
-    <div className="dashboard-profile-menu">
+    <div className="dashboard-profile-menu" ref={menuRef}>
       <button
         className="dashboard-user dashboard-profile-trigger"
         type="button"
         aria-label="Open profile menu"
         aria-expanded={open}
+        aria-controls={menuId}
+        title="Open profile menu"
         onClick={() => setOpen((value) => !value)}
       >
-        <span className="dashboard-avatar">
-          <img src="/brand-submark.png" alt="" aria-hidden="true" />
+            <span className="dashboard-avatar dashboard-avatar-logo dashboard-brand-mark">
+              <img className="dashboard-brand-logo" src="/brand-submark.png" alt="" aria-hidden="true" />
         </span>
+        <DashboardIcon name="chevron" />
       </button>
       {open && (
-        <div className="dashboard-profile-popover">
+        <div className="dashboard-profile-popover" id={menuId} role="dialog" aria-label="Profile settings">
           <div className="dashboard-profile-heading">
-            <strong>Profile</strong>
+            <div className="dashboard-profile-identity">
+              <span className="dashboard-avatar dashboard-avatar-logo dashboard-profile-logo dashboard-brand-mark">
+                <img className="dashboard-brand-logo" src="/brand-submark.png" alt="" aria-hidden="true" />
+              </span>
+              <span>
+                <strong>{name || "Raydiansyah"}</strong>
+                <small>{email}</small>
+              </span>
+            </div>
             <button
               type="button"
               aria-label="Close profile settings"
               onClick={() => setOpen(false)}
             >
-              ×
+              <DashboardIcon name="close" />
             </button>
           </div>
           <form className="dashboard-profile-form" onSubmit={save}>
@@ -2455,14 +2843,9 @@ function ProfileDropdown({
                 autoComplete="new-password"
               />
             </label>
-            <button className="dashboard-primary-action" type="submit">
-              Save profile <DashboardIcon name="arrow" />
+            <button className="dashboard-primary-action" type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Save profile"} <DashboardIcon name="arrow" />
             </button>
-            {status && (
-              <small className="dashboard-form-status" role="status">
-                {status}
-              </small>
-            )}
           </form>
           <button
             className="dashboard-profile-logout"
@@ -2473,6 +2856,7 @@ function ProfileDropdown({
           </button>
         </div>
       )}
+      <DashboardNotice message={status} onDismiss={() => setStatus("")} />
     </div>
   );
 }
@@ -2501,12 +2885,24 @@ export function DashboardApp() {
       window.localStorage.getItem("raydiansyah-dashboard-sidebar") ===
       "collapsed",
   );
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
     window.localStorage.setItem("raydiansyah-theme", dark ? "dark" : "light");
   }, [dark]);
+  useEffect(() => {
+    setMobileNavigationOpen(false);
+  }, [location.pathname]);
+  useEffect(() => {
+    if (!mobileNavigationOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileNavigationOpen]);
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -2586,7 +2982,7 @@ export function DashboardApp() {
       <PortfolioView
         data={data.portfolio}
         onChanged={() =>
-          void listOwnerPortfolio().then((portfolio) =>
+          listOwnerPortfolio().then((portfolio) =>
             setData((current) => ({ ...current, portfolio })),
           )
         }
@@ -2596,7 +2992,7 @@ export function DashboardApp() {
         data={data.slides}
         materials={data.materials}
         onChanged={() =>
-          void Promise.all([listSlides(), listMaterials()]).then(
+          Promise.all([listSlides(), listMaterials()]).then(
             ([slides, materials]) =>
               setData((current) => ({ ...current, slides, materials })),
           )
@@ -2606,7 +3002,7 @@ export function DashboardApp() {
       <ExperienceView
         data={data.experience}
         onCreated={() =>
-          void listOwnerExperience().then((experience) =>
+          listOwnerExperience().then((experience) =>
             setData((current) => ({ ...current, experience })),
           )
         }
@@ -2615,7 +3011,7 @@ export function DashboardApp() {
       <SkillsView
         data={data.skills}
         onChanged={() =>
-          void listOwnerSkills().then((skills) =>
+          listOwnerSkills().then((skills) =>
             setData((current) => ({ ...current, skills })),
           )
         }
@@ -2624,7 +3020,7 @@ export function DashboardApp() {
       <TestimonialsView
         data={data.testimonials}
         onChanged={() =>
-          void listTestimonials().then((testimonials) =>
+          listTestimonials().then((testimonials) =>
             setData((current) => ({ ...current, testimonials })),
           )
         }
@@ -2633,7 +3029,7 @@ export function DashboardApp() {
       <MessagesView
         data={data.messages}
         onChanged={() =>
-          void listContactMessages().then((messages) =>
+          listContactMessages().then((messages) =>
             setData((current) => ({
               ...current,
               messages: messages as Message[],
@@ -2674,25 +3070,32 @@ export function DashboardApp() {
         onLogout={logout}
         collapsed={sidebarCollapsed}
         onToggle={toggleSidebar}
+        mobileOpen={mobileNavigationOpen}
+        onMobileClose={() => setMobileNavigationOpen(false)}
       />
       <main className="dashboard-main">
         <header className="dashboard-topbar">
+          <button
+            className="dashboard-mobile-menu"
+            type="button"
+            aria-label="Open navigation"
+            aria-controls="dashboard-navigation"
+            aria-expanded={mobileNavigationOpen}
+            onClick={() => setMobileNavigationOpen(true)}
+          >
+            <DashboardIcon name="menu" />
+          </button>
           <Link className="dashboard-header-brand" to="/dashboard">
             <span className="dashboard-brand-name">raydiansyah</span>
             <span className="dashboard-brand-domain">.com</span>
           </Link>
-          <label className="dashboard-global-search">
-            <DashboardIcon name="search" />
-            <input
-              aria-label="Global dashboard search"
-              placeholder="Search workspace"
-            />
-          </label>
+          <GlobalSearch data={data} />
           <div className="dashboard-topbar-actions">
             <button
               className="dashboard-theme-toggle"
               type="button"
               aria-pressed={dark}
+              aria-label={`Switch to ${dark ? "light" : "dark"} theme`}
               onClick={toggleTheme}
             >
               <DashboardIcon name={dark ? "sun" : "moon"} />

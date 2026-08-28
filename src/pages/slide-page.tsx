@@ -13,6 +13,20 @@ import { getSlideBySlug, SlideAccessError } from "../lib/slides";
 import { useLanguage } from "../lib/language";
 import { t } from "../lib/i18n";
 
+function PresentationIcon({ name }: { name: "laser" | "draw" | "fullscreen" }) {
+  const paths = {
+    laser: "M4 20 20 4M7 4h3M4 7v3M17 20h3v-3",
+    draw: "m4 16 3.5-.7L18 4.8a2 2 0 0 1 2.8 2.8L10.3 18.5 4 20l1.5-6.3L16.8 2.4",
+    fullscreen: "M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5",
+  } as const;
+
+  return (
+    <svg className="slide-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d={paths[name]} />
+    </svg>
+  );
+}
+
 export function SlidePage() {
   const { language } = useLanguage();
   const { slug } = useParams({ strict: false }) as { slug?: string };
@@ -84,7 +98,7 @@ export function SlidePage() {
         if (document.fullscreenElement) void document.exitFullscreen();
         return;
       }
-      if (!context || !slide || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      if (!context || !slide || (!event.metaKey && !event.ctrlKey) || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
       const index = context.slides.findIndex((item) => item.id === slide.id);
       const destination = event.key === "ArrowRight" ? context.slides[index + 1] : context.slides[index - 1];
       if (!destination) return;
@@ -234,10 +248,12 @@ export function SlidePage() {
         <div className="slide-viewer-toolbar">
           <span>{language === "id" ? "Material slide" : "Slide material"}</span>
           <div className="slide-presenter-tools" aria-label={language === "id" ? "Alat presentasi" : "Presentation tools"}>
-            <button className={`button ${presentationTool === "laser" ? "active" : ""}`} type="button" onClick={() => setPresentationTool((current) => current === "laser" ? "none" : "laser")}>{language === "id" ? "Laser" : "Laser"}</button>
-            <button className={`button ${presentationTool === "draw" ? "active" : ""}`} type="button" onClick={() => setPresentationTool((current) => current === "draw" ? "none" : "draw")}>{language === "id" ? "Coret" : "Draw"}</button>
+            <div className="slide-tool-group" role="group" aria-label={language === "id" ? "Alat penunjuk" : "Pointer tools"}>
+              <button className={`button ${presentationTool === "laser" ? "active" : ""}`} type="button" title="Laser" aria-label="Laser" onClick={() => setPresentationTool((current) => current === "laser" ? "none" : "laser")}><PresentationIcon name="laser" /><span>Laser</span></button>
+              <button className={`button ${presentationTool === "draw" ? "active" : ""}`} type="button" title={language === "id" ? "Coret" : "Draw"} aria-label={language === "id" ? "Coret" : "Draw"} onClick={() => setPresentationTool((current) => current === "draw" ? "none" : "draw")}><PresentationIcon name="draw" /><span>{language === "id" ? "Coret" : "Draw"}</span></button>
+            </div>
             {presentationTool === "draw" && <button className="button" type="button" onClick={clearAnnotations}>{language === "id" ? "Hapus coretan" : "Clear"}</button>}
-            <button className="button" type="button" onClick={() => void toggleFullscreen()}>{language === "id" ? "Layar penuh" : "Fullscreen"} ⛶</button>
+            <button className="button slide-fullscreen-button" type="button" title={language === "id" ? "Layar penuh" : "Fullscreen"} aria-label={language === "id" ? "Layar penuh" : "Fullscreen"} onClick={() => void toggleFullscreen()}><PresentationIcon name="fullscreen" /></button>
           </div>
         </div>
       <div ref={stageRef} className="slide-viewer-stage" onPointerMove={handleLaserMove} onPointerLeave={() => setLaserPosition(null)}>
@@ -248,6 +264,7 @@ export function SlidePage() {
             slide.mime_type === "text/html" ? "allow-scripts allow-same-origin" : undefined
           }
           style={{ width: "100%", height: "70vh", border: 0 }}
+          allow="fullscreen"
           allowFullScreen
         />
         <div className={`slide-laser-layer ${presentationTool === "laser" ? "is-active" : ""}`} aria-hidden="true" onPointerMove={handleLaserMove} />

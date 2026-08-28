@@ -10,5 +10,5 @@ export function SlidePreview({ title, storagePath, mimeType }: { title: string; 
   const baseUrl = import.meta.env.VITE_R2_PUBLIC_BASE_URL;
   if (!baseUrl) return <span className="muted">No preview</span>;
   const url = `${baseUrl.replace(/\/$/, '')}/${storagePath}`;
-  return <div className="slide-preview"><iframe title={`Preview ${title}`} src={url} sandbox={mimeType === 'text/html' ? 'allow-scripts allow-same-origin' : undefined} loading="lazy" /></div>;
+  return <div className="slide-preview"><iframe title={`Preview ${title}`} src={url} sandbox={mimeType === 'text/html' ? 'allow-scripts allow-same-origin' : undefined} allow="fullscreen" loading="lazy" /></div>;
 }
