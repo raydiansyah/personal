@@ -3,7 +3,7 @@
  * Purpose: Provide fixed navigation, responsive menu, theme control, back-to-top action, footer, and shared cards
  * Used by: TanStack public, auth, and admin routes
  * Dependencies: React, TanStack Router, language preference, analytics helper, brand submark asset, landing design tokens
- * Public functions: SiteShell(), Feature(), ProjectCard(), BrandLogo()
+ * Public functions: SiteShell(), Feature(), BrandLogo()
  * Side effects: Persists theme and analytics consent preferences, synchronizes theme changes from dashboard, conditionally loads analytics, listens to scroll state, and performs client-side navigation
  */
 import { Link, Outlet, useLocation } from '@tanstack/react-router';
@@ -82,4 +82,3 @@ export function SiteShell() {
 export function BrandLogo() { return <span className="brand-logo-frame"><img className="brand-logo" src="/brand-submark.png" alt="" aria-hidden="true" /></span>; }
 
 export function Feature({ number, title, text }: { number: string; title: string; text: string }) { return <article className="card"><span className="tag">{number}</span><h3>{title}</h3><p className="muted">{text}</p></article>; }
-export function ProjectCard({ title, type, text, slug }: { title: string; type: string; text: string; slug: string }) { return <article className="card"><span className="tag">{type}</span><h3>{title}</h3><p className="muted">{text}</p><Link className="tag" to="/portfolio/$slug" params={{ slug }}>View case ↗</Link></article>; }

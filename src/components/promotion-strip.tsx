@@ -17,5 +17,5 @@ export function PromotionStrip() {
   const pageUrl = typeof window === 'undefined' ? 'https://raydiansyah.com/' : window.location.href;
   async function copyLink() { await navigator.clipboard.writeText(pageUrl); setStatus(t(language, 'share.copied')); trackEvent('share_click'); }
   async function shareLink() { if (navigator.share) await navigator.share({ title: document.title, text: t(language, 'share.title'), url: pageUrl }); else await copyLink(); trackEvent('share_click'); }
-  return <div className="promotion-strip"><p>{t(language, 'share.prompt')}</p><div className="share-actions"><button type="button" onClick={() => void copyLink()}>{t(language, 'share.copy')}</button><button type="button" onClick={() => void shareLink()}>{t(language, 'share.share')}</button></div>{status && <p className="subscribe-status" role="status">{status}</p>}</div>;
+  return <div className="promotion-strip"><p>{t(language, 'share.prompt')}</p><div className="share-actions"><button type="button" onClick={() => void copyLink()}>{t(language, 'share.copy')}</button><button type="button" onClick={() => void shareLink()}>{t(language, 'share.share')}</button></div>{status && <p className="share-status" role="status">{status}</p>}</div>;
 }

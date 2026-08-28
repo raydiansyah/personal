@@ -2799,7 +2799,7 @@ function ProfileDropdown({
         title="Open profile menu"
         onClick={() => setOpen((value) => !value)}
       >
-            <span className="dashboard-avatar dashboard-avatar-logo dashboard-brand-mark">
+            <span className="dashboard-avatar dashboard-brand-mark">
               <img className="dashboard-brand-logo" src="/brand-submark.png" alt="" aria-hidden="true" />
         </span>
         <DashboardIcon name="chevron" />
@@ -2808,7 +2808,7 @@ function ProfileDropdown({
         <div className="dashboard-profile-popover" id={menuId} role="dialog" aria-label="Profile settings">
           <div className="dashboard-profile-heading">
             <div className="dashboard-profile-identity">
-              <span className="dashboard-avatar dashboard-avatar-logo dashboard-profile-logo dashboard-brand-mark">
+              <span className="dashboard-avatar dashboard-brand-mark">
                 <img className="dashboard-brand-logo" src="/brand-submark.png" alt="" aria-hidden="true" />
               </span>
               <span>
