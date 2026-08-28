@@ -14,7 +14,8 @@ import { useLanguage } from "../lib/language";
 import { t } from "../lib/i18n";
 
 type PresentationTool = "none" | "laser" | "draw" | "text" | "shape";
-type Annotation = { id: number; type: "text" | "shape"; x: number; y: number; value?: string; color: string };
+type ShapeType = "rectangle" | "oval" | "circle" | "rounded";
+type Annotation = { id: number; type: "text" | "shape"; shape?: ShapeType; x: number; y: number; width?: number; height?: number; value?: string; color: string };
 
 function PresentationIcon({ name }: { name: "laser" | "draw" | "fullscreen" | "more" | "text" | "shape" }) {
   const paths = {
@@ -43,6 +44,11 @@ export function SlidePage() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const [annotationColor, setAnnotationColor] = useState("#ff8a65");
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
+  const [annotationHistory, setAnnotationHistory] = useState<Annotation[][]>([]);
+  const [annotationFuture, setAnnotationFuture] = useState<Annotation[][]>([]);
+  const [shapeType, setShapeType] = useState<ShapeType>("rectangle");
+  const [textDraft, setTextDraft] = useState<{ x: number; y: number; value: string } | null>(null);
+  const [zoom, setZoom] = useState(1);
   const [laserPosition, setLaserPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -162,7 +168,12 @@ export function SlidePage() {
     const stage = stageRef.current;
     if (!canvas || !stage) return;
     canvas.getContext("2d")?.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
+    if (annotations.length) setAnnotationHistory((current) => [...current, annotations]);
     setAnnotations([]);
+    setAnnotationFuture([]);
+    setAnnotationHistory([]);
+    setAnnotationFuture([]);
+    setTextDraft(null);
   }
 
   useEffect(() => {
@@ -175,6 +186,9 @@ export function SlidePage() {
   useEffect(() => {
     clearAnnotations();
     setAnnotations([]);
+    setAnnotationHistory([]);
+    setAnnotationFuture([]);
+    setZoom(1);
     setToolsOpen(false);
     setLaserPosition(null);
     setPresentationTool("none");
@@ -210,14 +224,40 @@ export function SlidePage() {
     const point = getStagePoint(event);
     if (!point) return;
     if (presentationTool === "text") {
-      const value = window.prompt(language === "id" ? "Teks anotasi" : "Annotation text");
-      if (!value?.trim()) return;
-      setAnnotations((current) => [...current, { id: Date.now(), type: "text", x: point.x, y: point.y, value: value.trim(), color: annotationColor }]);
+      setTextDraft({ x: point.x, y: point.y, value: "" });
+      return;
     } else {
-      setAnnotations((current) => [...current, { id: Date.now(), type: "shape", x: point.x, y: point.y, color: annotationColor }]);
+      setAnnotationHistory((current) => [...current, annotations]);
+      setAnnotations((current) => [...current, { id: Date.now(), type: "shape", shape: shapeType, x: point.x, y: point.y, width: shapeType === "circle" ? 100 : 140, height: shapeType === "circle" ? 100 : 90, color: annotationColor }]);
+      setAnnotationFuture([]);
     }
     setPresentationTool("none");
     setToolsOpen(false);
+  }
+
+  function commitTextDraft() {
+    if (!textDraft?.value.trim()) { setTextDraft(null); setPresentationTool("none"); return; }
+    setAnnotationHistory((current) => [...current, annotations]);
+    setAnnotations((current) => [...current, { id: Date.now(), type: "text", x: textDraft.x, y: textDraft.y, value: textDraft.value.trim(), color: annotationColor }]);
+    setAnnotationFuture([]);
+    setTextDraft(null);
+    setPresentationTool("none");
+  }
+
+  function undoAnnotation() {
+    const previous = annotationHistory.at(-1);
+    if (!previous) return;
+    setAnnotationFuture((current) => [...current, annotations]);
+    setAnnotations(previous);
+    setAnnotationHistory((current) => current.slice(0, -1));
+  }
+
+  function redoAnnotation() {
+    const next = annotationFuture.at(-1);
+    if (!next) return;
+    setAnnotationHistory((current) => [...current, annotations]);
+    setAnnotations(next);
+    setAnnotationFuture((current) => current.slice(0, -1));
   }
 
   function draw(event: ReactPointerEvent<HTMLCanvasElement>) {
@@ -284,9 +324,12 @@ export function SlidePage() {
                 <button className={`slide-tool-menu-item ${presentationTool === "text" ? "active" : ""}`} type="button" role="menuitem" onClick={() => { setPresentationTool("text"); setToolsOpen(false); }}><PresentationIcon name="text" /><span>{language === "id" ? "Tambah teks" : "Add text"}</span></button>
                 <button className={`slide-tool-menu-item ${presentationTool === "shape" ? "active" : ""}`} type="button" role="menuitem" onClick={() => { setPresentationTool("shape"); setToolsOpen(false); }}><PresentationIcon name="shape" /><span>{language === "id" ? "Tambah bentuk" : "Add shape"}</span></button>
                 <label className="slide-color-control">{language === "id" ? "Warna" : "Color"}<input type="color" value={annotationColor} onChange={(event) => setAnnotationColor(event.target.value)} aria-label={language === "id" ? "Warna anotasi" : "Annotation color"} /></label>
+                <label className="slide-color-control">{language === "id" ? "Bentuk" : "Shape"}<select value={shapeType} onChange={(event) => setShapeType(event.target.value as ShapeType)}><option value="rectangle">Rectangle</option><option value="oval">Oval</option><option value="circle">Circle</option><option value="rounded">Persegi panjang</option></select></label>
               </div>}
             </div>
             {(annotations.length > 0 || presentationTool === "draw") && <button className="button" type="button" onClick={clearAnnotations}>{language === "id" ? "Hapus anotasi" : "Clear annotations"}</button>}
+            <div className="slide-history-actions" role="group" aria-label={language === "id" ? "Riwayat anotasi" : "Annotation history"}><button className="button" type="button" onClick={undoAnnotation} disabled={!annotationHistory.length} title="Undo" aria-label="Undo">↶</button><button className="button" type="button" onClick={redoAnnotation} disabled={!annotationFuture.length} title="Redo" aria-label="Redo">↷</button></div>
+            <div className="slide-zoom-actions" role="group" aria-label={language === "id" ? "Zoom slide" : "Slide zoom"}><button className="button" type="button" onClick={() => setZoom((value) => Math.max(0.7, Number((value - 0.1).toFixed(1))))} title="Zoom out" aria-label="Zoom out">−</button><span>{Math.round(zoom * 100)}%</span><button className="button" type="button" onClick={() => setZoom((value) => Math.min(1.5, Number((value + 0.1).toFixed(1))))} title="Zoom in" aria-label="Zoom in">+</button></div>
             <button className="button slide-fullscreen-button" type="button" title={language === "id" ? "Layar penuh" : "Fullscreen"} aria-label={language === "id" ? "Layar penuh" : "Fullscreen"} onClick={() => void toggleFullscreen()}><PresentationIcon name="fullscreen" /></button>
           </div>
         </div>
@@ -297,14 +340,15 @@ export function SlidePage() {
           sandbox={
             slide.mime_type === "text/html" ? "allow-scripts allow-same-origin" : undefined
           }
-          style={{ width: "100%", height: "70vh", border: 0 }}
+          style={{ width: "100%", height: "70vh", border: 0, transform: `scale(${zoom})`, transformOrigin: "center center" }}
           allow="fullscreen"
           allowFullScreen
         />
         <div className={`slide-laser-layer ${presentationTool === "laser" ? "is-active" : ""}`} aria-hidden="true" onPointerMove={handleLaserMove} />
         <canvas ref={canvasRef} className={`slide-annotation-canvas ${presentationTool === "draw" ? "is-active" : ""}`} onPointerDown={startDrawing} onPointerMove={draw} onPointerUp={stopDrawing} onPointerCancel={stopDrawing} aria-label={language === "id" ? "Kanvas coretan" : "Drawing canvas"} />
-        <div className={`slide-annotation-placement-layer ${presentationTool === "text" || presentationTool === "shape" ? "is-active" : ""}`} onPointerDown={handleAnnotationPlacement} aria-hidden="true">
-          {annotations.map((annotation) => annotation.type === "text" ? <span key={annotation.id} className="slide-text-annotation" style={{ left: annotation.x, top: annotation.y, color: annotation.color }}>{annotation.value}</span> : <span key={annotation.id} className="slide-shape-annotation" style={{ left: annotation.x - 70, top: annotation.y - 45, borderColor: annotation.color, backgroundColor: `${annotation.color}22` }} />)}
+        <div className={`slide-annotation-placement-layer ${presentationTool === "text" || presentationTool === "shape" ? "is-active" : ""}`} onPointerDown={handleAnnotationPlacement}>
+          {annotations.map((annotation) => annotation.type === "text" ? <span key={annotation.id} className="slide-text-annotation" style={{ left: annotation.x, top: annotation.y, color: annotation.color }}>{annotation.value}</span> : <span key={annotation.id} className={`slide-shape-annotation is-${annotation.shape ?? "rectangle"}`} style={{ left: annotation.x, top: annotation.y, width: annotation.width, height: annotation.height, borderColor: annotation.color, backgroundColor: `${annotation.color}22` }} />)}
+          {textDraft && <input autoFocus className="slide-text-draft" value={textDraft.value} onChange={(event) => setTextDraft({ ...textDraft, value: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") commitTextDraft(); if (event.key === "Escape") { setTextDraft(null); setPresentationTool("none"); } }} onBlur={commitTextDraft} style={{ left: textDraft.x, top: textDraft.y }} placeholder={language === "id" ? "Tulis teks" : "Type text"} aria-label={language === "id" ? "Teks anotasi" : "Annotation text"} />}
         </div>
         {presentationTool === "laser" && laserPosition && <span className="slide-laser-dot" style={{ left: laserPosition.x, top: laserPosition.y }} aria-hidden="true" />}
       </div>
