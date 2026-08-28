@@ -13,11 +13,17 @@ import { getSlideBySlug, SlideAccessError } from "../lib/slides";
 import { useLanguage } from "../lib/language";
 import { t } from "../lib/i18n";
 
-function PresentationIcon({ name }: { name: "laser" | "draw" | "fullscreen" }) {
+type PresentationTool = "none" | "laser" | "draw" | "text" | "shape";
+type Annotation = { id: number; type: "text" | "shape"; x: number; y: number; value?: string; color: string };
+
+function PresentationIcon({ name }: { name: "laser" | "draw" | "fullscreen" | "more" | "text" | "shape" }) {
   const paths = {
     laser: "M4 20 20 4M7 4h3M4 7v3M17 20h3v-3",
     draw: "m4 16 3.5-.7L18 4.8a2 2 0 0 1 2.8 2.8L10.3 18.5 4 20l1.5-6.3L16.8 2.4",
     fullscreen: "M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5",
+    more: "M5 12h.01M12 12h.01M19 12h.01",
+    text: "M5 5h14M12 5v14M8 19h8",
+    shape: "M5 5h14v14H5z",
   } as const;
 
   return (
@@ -33,7 +39,10 @@ export function SlidePage() {
   const [activeSlug, setActiveSlug] = useState(slug ?? "");
   const [accessCode, setAccessCode] = useState("");
   const [submittedCode, setSubmittedCode] = useState("");
-  const [presentationTool, setPresentationTool] = useState<"none" | "laser" | "draw">("none");
+  const [presentationTool, setPresentationTool] = useState<PresentationTool>("none");
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [annotationColor, setAnnotationColor] = useState("#ff8a65");
+  const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [laserPosition, setLaserPosition] = useState<{ x: number; y: number } | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const viewerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +57,7 @@ export function SlidePage() {
   });
   const context = result.data;
   const slide = context?.slide;
+  const material = context?.material;
 
   useEffect(() => {
     if (slug && window.location.pathname === `/s/${encodeURIComponent(slug)}` && slug !== activeSlug) setActiveSlug(slug);
@@ -152,6 +162,7 @@ export function SlidePage() {
     const stage = stageRef.current;
     if (!canvas || !stage) return;
     canvas.getContext("2d")?.clearRect(0, 0, stage.clientWidth, stage.clientHeight);
+    setAnnotations([]);
   }
 
   useEffect(() => {
@@ -163,6 +174,8 @@ export function SlidePage() {
 
   useEffect(() => {
     clearAnnotations();
+    setAnnotations([]);
+    setToolsOpen(false);
     setLaserPosition(null);
     setPresentationTool("none");
   }, [activeSlug]);
@@ -185,11 +198,26 @@ export function SlidePage() {
     event.currentTarget.setPointerCapture(event.pointerId);
     context.beginPath();
     context.moveTo(point.x, point.y);
-    context.strokeStyle = "#ff8a65";
+    context.strokeStyle = annotationColor;
     context.lineWidth = 4;
     context.lineCap = "round";
     context.lineJoin = "round";
     setIsDrawing(true);
+  }
+
+  function handleAnnotationPlacement(event: ReactPointerEvent<HTMLDivElement>) {
+    if (presentationTool !== "text" && presentationTool !== "shape") return;
+    const point = getStagePoint(event);
+    if (!point) return;
+    if (presentationTool === "text") {
+      const value = window.prompt(language === "id" ? "Teks anotasi" : "Annotation text");
+      if (!value?.trim()) return;
+      setAnnotations((current) => [...current, { id: Date.now(), type: "text", x: point.x, y: point.y, value: value.trim(), color: annotationColor }]);
+    } else {
+      setAnnotations((current) => [...current, { id: Date.now(), type: "shape", x: point.x, y: point.y, color: annotationColor }]);
+    }
+    setPresentationTool("none");
+    setToolsOpen(false);
   }
 
   function draw(event: ReactPointerEvent<HTMLCanvasElement>) {
@@ -246,13 +274,19 @@ export function SlidePage() {
       <h1>{slide.judul}</h1>
       <div ref={viewerRef} className="slide-viewer-shell">
         <div className="slide-viewer-toolbar">
-          <span>{language === "id" ? "Material slide" : "Slide material"}</span>
+          <div className="slide-viewer-context"><span>{language === "id" ? "Material slide" : "Slide material"}</span>{material && <strong title={material.deskripsi || material.judul}>{material.judul}</strong>}</div>
           <div className="slide-presenter-tools" aria-label={language === "id" ? "Alat presentasi" : "Presentation tools"}>
-            <div className="slide-tool-group" role="group" aria-label={language === "id" ? "Alat penunjuk" : "Pointer tools"}>
-              <button className={`button ${presentationTool === "laser" ? "active" : ""}`} type="button" title="Laser" aria-label="Laser" onClick={() => setPresentationTool((current) => current === "laser" ? "none" : "laser")}><PresentationIcon name="laser" /><span>Laser</span></button>
-              <button className={`button ${presentationTool === "draw" ? "active" : ""}`} type="button" title={language === "id" ? "Coret" : "Draw"} aria-label={language === "id" ? "Coret" : "Draw"} onClick={() => setPresentationTool((current) => current === "draw" ? "none" : "draw")}><PresentationIcon name="draw" /><span>{language === "id" ? "Coret" : "Draw"}</span></button>
+            <div className="slide-tools-menu">
+              <button className={`button slide-tools-trigger ${toolsOpen ? "active" : ""}`} type="button" title={language === "id" ? "Alat slide" : "Slide tools"} aria-label={language === "id" ? "Buka alat slide" : "Open slide tools"} aria-expanded={toolsOpen} onClick={() => setToolsOpen((current) => !current)}><PresentationIcon name="more" /></button>
+              {toolsOpen && <div className="slide-tools-popover" role="menu" aria-label={language === "id" ? "Alat slide" : "Slide tools"}>
+                <button className={`slide-tool-menu-item ${presentationTool === "laser" ? "active" : ""}`} type="button" role="menuitem" onClick={() => { setPresentationTool((current) => current === "laser" ? "none" : "laser"); setToolsOpen(false); }}><PresentationIcon name="laser" /><span>Laser</span></button>
+                <button className={`slide-tool-menu-item ${presentationTool === "draw" ? "active" : ""}`} type="button" role="menuitem" onClick={() => { setPresentationTool((current) => current === "draw" ? "none" : "draw"); setToolsOpen(false); }}><PresentationIcon name="draw" /><span>{language === "id" ? "Coret" : "Draw"}</span></button>
+                <button className={`slide-tool-menu-item ${presentationTool === "text" ? "active" : ""}`} type="button" role="menuitem" onClick={() => { setPresentationTool("text"); setToolsOpen(false); }}><PresentationIcon name="text" /><span>{language === "id" ? "Tambah teks" : "Add text"}</span></button>
+                <button className={`slide-tool-menu-item ${presentationTool === "shape" ? "active" : ""}`} type="button" role="menuitem" onClick={() => { setPresentationTool("shape"); setToolsOpen(false); }}><PresentationIcon name="shape" /><span>{language === "id" ? "Tambah bentuk" : "Add shape"}</span></button>
+                <label className="slide-color-control">{language === "id" ? "Warna" : "Color"}<input type="color" value={annotationColor} onChange={(event) => setAnnotationColor(event.target.value)} aria-label={language === "id" ? "Warna anotasi" : "Annotation color"} /></label>
+              </div>}
             </div>
-            {presentationTool === "draw" && <button className="button" type="button" onClick={clearAnnotations}>{language === "id" ? "Hapus coretan" : "Clear"}</button>}
+            {(annotations.length > 0 || presentationTool === "draw") && <button className="button" type="button" onClick={clearAnnotations}>{language === "id" ? "Hapus anotasi" : "Clear annotations"}</button>}
             <button className="button slide-fullscreen-button" type="button" title={language === "id" ? "Layar penuh" : "Fullscreen"} aria-label={language === "id" ? "Layar penuh" : "Fullscreen"} onClick={() => void toggleFullscreen()}><PresentationIcon name="fullscreen" /></button>
           </div>
         </div>
@@ -269,6 +303,9 @@ export function SlidePage() {
         />
         <div className={`slide-laser-layer ${presentationTool === "laser" ? "is-active" : ""}`} aria-hidden="true" onPointerMove={handleLaserMove} />
         <canvas ref={canvasRef} className={`slide-annotation-canvas ${presentationTool === "draw" ? "is-active" : ""}`} onPointerDown={startDrawing} onPointerMove={draw} onPointerUp={stopDrawing} onPointerCancel={stopDrawing} aria-label={language === "id" ? "Kanvas coretan" : "Drawing canvas"} />
+        <div className={`slide-annotation-placement-layer ${presentationTool === "text" || presentationTool === "shape" ? "is-active" : ""}`} onPointerDown={handleAnnotationPlacement} aria-hidden="true">
+          {annotations.map((annotation) => annotation.type === "text" ? <span key={annotation.id} className="slide-text-annotation" style={{ left: annotation.x, top: annotation.y, color: annotation.color }}>{annotation.value}</span> : <span key={annotation.id} className="slide-shape-annotation" style={{ left: annotation.x - 70, top: annotation.y - 45, borderColor: annotation.color, backgroundColor: `${annotation.color}22` }} />)}
+        </div>
         {presentationTool === "laser" && laserPosition && <span className="slide-laser-dot" style={{ left: laserPosition.x, top: laserPosition.y }} aria-hidden="true" />}
       </div>
       {context && context.slides.length > 1 && (() => { const index = context.slides.findIndex((item) => item.id === slide.id); const previous = index > 0 ? context.slides[index - 1] : null; const next = index >= 0 && index < context.slides.length - 1 ? context.slides[index + 1] : null; return <>

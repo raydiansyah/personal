@@ -15,7 +15,7 @@ const corsHeaders = {
 }
 
 type SlideRecord = { id: string; judul: string; slug: string; storage_path: string; mime_type: 'text/html' | 'application/pdf'; material_id: string | null; urutan: number; status_tampil: boolean }
-type MaterialRecord = { id: string; akses_kode: string | null; akses_berakhir_pada: string | null; status_tampil: boolean }
+type MaterialRecord = { id: string; judul: string; slug: string; deskripsi: string; akses_kode: string | null; akses_berakhir_pada: string | null; status_tampil: boolean }
 
 function json(body: Record<string, unknown>, status = 200) { return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }) }
 function restHeaders(secret: string) { return { apikey: secret, Authorization: `Bearer ${secret}` } }
@@ -42,12 +42,12 @@ Deno.serve(async (request) => {
     const slide = slideRows[0]
     if (!slide) return json({ error: 'not_found' }, 404)
     if (!slide.material_id) return json({ slide, slides: [{ id: slide.id, judul: slide.judul, slug: slide.slug, urutan: slide.urutan }] })
-    const materials = await rest<MaterialRecord>(`material?select=id,akses_kode,akses_berakhir_pada,status_tampil&id=eq.${encodeURIComponent(slide.material_id)}&status_tampil=eq.true&limit=1`)
+    const materials = await rest<MaterialRecord>(`material?select=id,judul,slug,deskripsi,akses_kode,akses_berakhir_pada,status_tampil&id=eq.${encodeURIComponent(slide.material_id)}&status_tampil=eq.true&limit=1`)
     const material = materials[0]
     if (!material) return json({ error: 'not_found' }, 404)
     if (isExpired(material.akses_berakhir_pada)) return json({ error: 'access_expired' }, 410)
     if (material.akses_kode && payload.access_code !== material.akses_kode) return json({ error: payload.access_code ? 'invalid_access_code' : 'access_required' }, payload.access_code ? 403 : 401)
     const slides = await rest<Pick<SlideRecord, 'id' | 'judul' | 'slug' | 'urutan'>>(`slide_presentasi?select=id,judul,slug,urutan&material_id=eq.${encodeURIComponent(slide.material_id)}&status_tampil=eq.true&order=urutan.asc,dibuat_pada.asc`)
-    return json({ slide, slides })
+    return json({ slide, material: { id: material.id, judul: material.judul, slug: material.slug, deskripsi: material.deskripsi }, slides })
   } catch { return json({ error: 'slide_access_failed' }, 502) }
 })
