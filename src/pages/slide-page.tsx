@@ -342,7 +342,8 @@ export function SlidePage() {
           sandbox={
             slide.mime_type === "text/html" ? "allow-scripts allow-same-origin" : undefined
           }
-          style={{ width: "100%", height: "70vh", border: 0, transform: `scale(${zoom})`, transformOrigin: "center center" }}
+          scrolling="yes"
+          style={{ width: "100%", height: "70vh", border: 0, touchAction: "pan-y", WebkitOverflowScrolling: "touch", transform: `scale(${zoom})`, transformOrigin: "center center" }}
           allow="fullscreen"
           allowFullScreen
         />
