@@ -1128,6 +1128,7 @@ function SlideView({
   const [editFileError, setEditFileError] = useState("");
   const [materialId, setMaterialId] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [createSlideModal, setCreateSlideModal] = useState(false);
   const [shareMaterial, setShareMaterial] = useState<Material | null>(null);
   const [materialAccessMode, setMaterialAccessMode] = useState("none");
@@ -1158,6 +1159,7 @@ function SlideView({
       ),
     [activeMaterialId, data, mime, query, visibility],
   );
+  const canReorder = Boolean(activeMaterialId) && !query && !mime && visibility === "visible";
   const allSelected =
     filtered.length > 0 && filtered.every((item) => selected.includes(item.id));
   function toggle(id: string) {
@@ -1351,7 +1353,7 @@ function SlideView({
     }
   }
   async function reorder(targetId: string) {
-    if (!draggedId || draggedId === targetId) return;
+    if (!canReorder || !draggedId || draggedId === targetId) return;
     const next = data
       .filter((item) => item.material_id === activeMaterialId)
       .sort((a, b) => a.urutan - b.urutan);
@@ -1374,6 +1376,7 @@ function SlideView({
       );
     } finally {
       setDraggedId(null);
+      setDragOverId(null);
     }
   }
   return (
@@ -1456,6 +1459,11 @@ function SlideView({
         </form>
       )}
       <DashboardNotice message={status} onDismiss={() => setStatus("")} />
+      <p className="dashboard-dnd-help" role="status">
+        {canReorder
+          ? "Drag handle untuk mengatur urutan slide dalam material ini. Perubahan tersimpan otomatis."
+          : "Pilih satu material dan hapus filter untuk mengatur urutan slide dengan drag-and-drop."}
+      </p>
       <div className="dashboard-toolbar">
         <select
           value={activeMaterialId}
@@ -1528,7 +1536,7 @@ function SlideView({
         <table className="dashboard-table">
           <thead>
             <tr>
-              <th>
+              <th>Order / select
                 <input
                   type="checkbox"
                   aria-label="Select all filtered slides"
@@ -1536,6 +1544,7 @@ function SlideView({
                   onChange={toggleAll}
                 />
               </th>
+              <th>Move</th>
               <th>Preview</th>
               <th>Title</th>
               <th>Type</th>
@@ -1547,18 +1556,47 @@ function SlideView({
             {filtered.map((item, index) => (
               <tr
                 key={item.id}
-                draggable
-                onDragStart={() => setDraggedId(item.id)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={() => void reorder(item.id)}
+                className={`${draggedId === item.id ? "is-dragging" : ""}${dragOverId === item.id ? " is-drag-over" : ""}`}
+                onDragOver={(event) => {
+                  if (!canReorder || !draggedId || draggedId === item.id) return;
+                  event.preventDefault();
+                  setDragOverId(item.id);
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  void reorder(item.id);
+                }}
               >
                 <td>
+                  <span className="dashboard-slide-order" aria-label={`Urutan ${index + 1}`}>
+                    {index + 1}
+                  </span>
                   <input
                     type="checkbox"
                     aria-label={`Select ${item.judul}`}
                     checked={selected.includes(item.id)}
                     onChange={() => toggle(item.id)}
                   />
+                </td>
+                <td>
+                  <button
+                    className="dashboard-drag-handle"
+                    type="button"
+                    draggable={canReorder}
+                    aria-label={`Atur urutan ${item.judul}`}
+                    title={canReorder ? "Drag untuk mengatur urutan" : "Pilih satu material dan hapus filter terlebih dahulu"}
+                    disabled={!canReorder}
+                    onDragStart={(event) => {
+                      event.dataTransfer.effectAllowed = "move";
+                      setDraggedId(item.id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedId(null);
+                      setDragOverId(null);
+                    }}
+                  >
+                    ⋮⋮
+                  </button>
                 </td>
                 <td>
                   <SlidePreview

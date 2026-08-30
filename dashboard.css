@@ -603,6 +603,52 @@
   color: var(--muted);
   font: 10px var(--mono);
 }
+.dashboard-dnd-help {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font: 10px var(--mono);
+}
+.dashboard-table tr.is-dragging {
+  opacity: 0.45;
+}
+.dashboard-table tr.is-drag-over td {
+  border-top: 2px solid var(--coral);
+}
+.dashboard-slide-order {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  font: 10px var(--mono);
+}
+.dashboard-drag-handle {
+  display: inline-grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: 700 13px/1 var(--mono);
+  letter-spacing: -0.18em;
+  cursor: grab;
+}
+.dashboard-drag-handle:active {
+  cursor: grabbing;
+}
+.dashboard-drag-handle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.dashboard-drag-handle:not(:disabled):hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
 .dashboard-table .portfolio-preview {
   width: 112px;
   height: 64px;
