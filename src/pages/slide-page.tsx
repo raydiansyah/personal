@@ -313,6 +313,9 @@ export function SlidePage() {
     );
 
   const url = `${baseUrl.replace(/\/$/, "")}/${slide.storage_path}`;
+  const slideIndex = context?.slides.findIndex((item) => item.id === slide.id) ?? -1;
+  const previousSlide = slideIndex > 0 ? context?.slides[slideIndex - 1] : null;
+  const nextSlide = context && slideIndex >= 0 && slideIndex < context.slides.length - 1 ? context.slides[slideIndex + 1] : null;
   return (
     <section className="page section">
       <p className="eyebrow">{t(language, 'slide.title')} · {slide.mime_type}</p>
@@ -332,6 +335,7 @@ export function SlidePage() {
             {hasDrawing && <button className="button" type="button" onClick={clearDrawing}>{language === "id" ? "Hapus coretan" : "Clear drawing"}</button>}
             <div className="slide-history-actions" role="group" aria-label={language === "id" ? "Riwayat coretan" : "Drawing history"}><button className="button" type="button" onClick={undoDrawing} disabled={!drawingHistory.length} title="Undo" aria-label="Undo">↶</button><button className="button" type="button" onClick={redoDrawing} disabled={!drawingFuture.length} title="Redo" aria-label="Redo">↷</button></div>
             <div className="slide-zoom-actions" role="group" aria-label={language === "id" ? "Zoom slide" : "Slide zoom"}><button className="button" type="button" onClick={() => setZoom((value) => Math.max(0.7, Number((value - 0.1).toFixed(1))))} title="Zoom out" aria-label="Zoom out">−</button><span>{Math.round(zoom * 100)}%</span><button className="button" type="button" onClick={() => setZoom((value) => Math.min(1.5, Number((value + 0.1).toFixed(1))))} title="Zoom in" aria-label="Zoom in">+</button></div>
+            {context && context.slides.length > 1 && <div className="slide-fullscreen-navigation" role="group" aria-label={language === "id" ? "Navigasi fullscreen" : "Fullscreen navigation"}><button className="button" type="button" disabled={!previousSlide} onClick={() => { if (!previousSlide) return; keepFullscreenOnNavigation(); goToSlide(previousSlide.slug); }} title={language === "id" ? "Slide sebelumnya" : "Previous slide"} aria-label={language === "id" ? "Slide sebelumnya" : "Previous slide"}>←</button><button className="button" type="button" disabled={!nextSlide} onClick={() => { if (!nextSlide) return; keepFullscreenOnNavigation(); goToSlide(nextSlide.slug); }} title={language === "id" ? "Slide berikutnya" : "Next slide"} aria-label={language === "id" ? "Slide berikutnya" : "Next slide"}>→</button></div>}
             <button className="button slide-fullscreen-button" type="button" title={language === "id" ? "Layar penuh" : "Fullscreen"} aria-label={language === "id" ? "Layar penuh" : "Fullscreen"} onClick={() => void toggleFullscreen()}><PresentationIcon name="fullscreen" /></button>
           </div>
         </div>
