@@ -3,7 +3,7 @@
  * Purpose: Provide authenticated Supabase operations for content management and inbox review
  * Used by: src/admin.tsx
  * Dependencies: Supabase browser client for metadata/Auth, shared file validation, and Cloudflare R2 presign endpoint for file bytes
- * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), updateOwnerProfile(), listOwnerPortfolio(), createPortfolio(), updatePortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), updateTestimonial(), deleteTestimonial(), listMaterials(), createMaterial(), updateMaterial(), deleteMaterial(), listSlides(), updateSlide(), replaceSlideFile(), updateSlideOrder(), deleteSlide(), listOwnerExperience(), createExperience(), updateExperience(), deleteExperience(), listOwnerSkills(), createSkill(), updateSkill(), deleteSkill(), slugify(), validateSlideSlug(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
+ * Public functions: signInOwner(), signOutOwner(), getOwnerSession(), updateOwnerProfile(), listOwnerPortfolio(), listPortfolioClickStats(), createPortfolio(), updatePortfolio(), deletePortfolio(), listTestimonials(), createTestimonial(), updateTestimonial(), deleteTestimonial(), listMaterials(), createMaterial(), updateMaterial(), deleteMaterial(), listSlides(), updateSlide(), replaceSlideFile(), updateSlideOrder(), deleteSlide(), listOwnerExperience(), createExperience(), updateExperience(), deleteExperience(), listOwnerSkills(), createSkill(), updateSkill(), deleteSkill(), slugify(), validateSlideSlug(), uploadSlide(), uploadPortfolioCover(), listContactMessages()
  * Side effects: Auth session persistence, authenticated database reads/writes, and HTTP uploads with progress callbacks
  */
 import { getSupabaseClient } from "./supabase";
@@ -52,6 +52,15 @@ export async function listOwnerPortfolio(): Promise<Portfolio[]> {
     .order("tanggal", { ascending: false });
   if (error) throw error;
   return data as Portfolio[];
+}
+export type PortfolioClickStat = { portfolio_id: string; judul: string; clicked_date: string; click_count: number };
+export async function listPortfolioClickStats(): Promise<PortfolioClickStat[]> {
+  const { data, error } = await getSupabaseClient()
+    .from("portfolio_click_daily")
+    .select("portfolio_id, judul, clicked_date, click_count")
+    .order("clicked_date", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as PortfolioClickStat[];
 }
 export async function createPortfolio(
   input: Pick<

@@ -9,13 +9,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { listPortfolio, listPortfolioCategories, type Portfolio, type PortfolioCategoryOption } from './lib/portfolio';
+import { trackPortfolioClick } from './lib/analytics';
 import { useLanguage } from './lib/language';
 import { t } from './lib/i18n';
 
 function PortfolioCard({ item }: { item: Portfolio }) {
   const { language } = useLanguage();
   const hasDemo = Boolean(item.url_demo && /^https?:\/\//i.test(item.url_demo));
-  return <article className="work-card project-showcase"><div className="project-showcase-copy"><h3>{item.judul}</h3><p>{item.ringkasan}</p></div>{hasDemo && <a className="project-showcase-action" href={item.url_demo ?? undefined} target="_blank" rel="noreferrer">{language === 'id' ? 'Lihat project' : 'View project'} <span>↗</span></a>}</article>;
+  return <article className="work-card project-showcase"><div className="project-showcase-copy"><h3>{item.judul}</h3><p>{item.ringkasan}</p></div>{hasDemo && <a className="project-showcase-action" href={item.url_demo ?? undefined} target="_blank" rel="noreferrer" onClick={() => void trackPortfolioClick(item.id)}>{language === 'id' ? 'Lihat project' : 'View project'} <span>↗</span></a>}</article>;
 }
 
 export function PortfolioDataIsland() {

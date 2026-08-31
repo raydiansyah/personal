@@ -33,6 +33,7 @@ import {
   listMaterials,
   listOwnerExperience,
   listOwnerPortfolio,
+  listPortfolioClickStats,
   listOwnerSkills,
   listSlides,
   listTestimonials,
@@ -53,6 +54,7 @@ import {
   replaceSlideFile,
   type Experience,
   type Material,
+  type PortfolioClickStat,
   type Slide,
   type Skill,
   type Testimonial,
@@ -81,6 +83,7 @@ type DashboardData = {
   messages: Message[];
   experience: Experience[];
   skills: Skill[];
+  portfolioClickStats: PortfolioClickStat[];
 };
 
 const navGroups = [
@@ -271,6 +274,19 @@ function MetricCard({
 
 function Overview({ data }: { data: DashboardData }) {
   const recentMessages = data.messages.slice(0, 5);
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+  const month = today.slice(0, 7);
+  const year = today.slice(0, 4);
+  const clickTotals = data.portfolioClickStats.reduce((totals, item) => ({
+    today: totals.today + (item.clicked_date === today ? item.click_count : 0),
+    month: totals.month + (item.clicked_date.startsWith(month) ? item.click_count : 0),
+    year: totals.year + (item.clicked_date.startsWith(year) ? item.click_count : 0),
+  }), { today: 0, month: 0, year: 0 });
+  const portfolioClicks = data.portfolio.map((portfolio) => data.portfolioClickStats.filter((item) => item.portfolio_id === portfolio.id).reduce((totals, item) => ({
+    today: totals.today + (item.clicked_date === today ? item.click_count : 0),
+    month: totals.month + (item.clicked_date.startsWith(month) ? item.click_count : 0),
+    year: totals.year + (item.clicked_date.startsWith(year) ? item.click_count : 0),
+  }), { today: 0, month: 0, year: 0 }));
   return (
     <>
       <div className="dashboard-page-heading">
@@ -309,6 +325,14 @@ function Overview({ data }: { data: DashboardData }) {
           icon="inbox"
         />
       </div>
+      <section className="dashboard-panel dashboard-portfolio-analytics">
+        <div className="dashboard-panel-heading">
+          <div><p className="dashboard-kicker">Portfolio analytics</p><h2>Clicks by portfolio</h2></div>
+          <span className="dashboard-analytics-total">{clickTotals.year} this year</span>
+        </div>
+        <div className="dashboard-analytics-periods"><span><strong>{clickTotals.today}</strong>Today</span><span><strong>{clickTotals.month}</strong>This month</span><span><strong>{clickTotals.year}</strong>This year</span></div>
+        {data.portfolio.length ? <div className="dashboard-analytics-table"><div className="dashboard-analytics-row dashboard-analytics-head"><span>Portfolio</span><span>Today</span><span>Month</span><span>Year</span></div>{data.portfolio.map((item, index) => <div className="dashboard-analytics-row" key={item.id}><strong>{item.judul}</strong><span>{portfolioClicks[index].today}</span><span>{portfolioClicks[index].month}</span><span>{portfolioClicks[index].year}</span></div>)}</div> : <p className="dashboard-empty">Add a portfolio item to start collecting click data.</p>}
+      </section>
       <div className="dashboard-overview-grid">
         <section className="dashboard-panel dashboard-activity-panel">
           <div className="dashboard-panel-heading">
@@ -2910,6 +2934,7 @@ export function DashboardApp() {
     messages: [],
     experience: [],
     skills: [],
+    portfolioClickStats: [],
   });
   const [profile, setProfile] = useState({ email: "", name: "" });
   const [dark, setDark] = useState(() => {
@@ -2971,6 +2996,7 @@ export function DashboardApp() {
           messages,
           experience,
           skills,
+          portfolioClickStats,
         ] = await Promise.all([
           listOwnerPortfolio(),
           listSlides(),
@@ -2979,6 +3005,7 @@ export function DashboardApp() {
           listContactMessages(),
           listOwnerExperience(),
           listOwnerSkills(),
+          listPortfolioClickStats(),
         ]);
         if (!cancelled)
           setData({
@@ -2989,6 +3016,7 @@ export function DashboardApp() {
             messages: messages as Message[],
             experience,
             skills,
+            portfolioClickStats,
           });
       } catch (caught) {
         if (!cancelled)
