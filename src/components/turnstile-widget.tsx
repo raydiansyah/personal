@@ -35,7 +35,7 @@ function loadTurnstileScript() {
   return scriptPromise;
 }
 
-export function TurnstileWidget({ onToken, onError }: { onToken: (token: string) => void; onError?: (message: string) => void }) {
+export function TurnstileWidget({ action = 'contact', onToken, onError }: { action?: string; onToken: (token: string) => void; onError?: (message: string) => void }) {
   const { language } = useLanguage();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | number | undefined>(undefined);
@@ -52,6 +52,7 @@ export function TurnstileWidget({ onToken, onError }: { onToken: (token: string)
       if (cancelled || !containerRef.current || !window.turnstile) return;
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey,
+        action,
         theme: 'auto',
         callback: onToken,
         'expired-callback': () => onToken(''),
@@ -63,7 +64,7 @@ export function TurnstileWidget({ onToken, onError }: { onToken: (token: string)
       if (widgetIdRef.current !== undefined && window.turnstile?.remove) window.turnstile.remove(widgetIdRef.current);
       widgetIdRef.current = undefined;
     };
-  }, [language, onError, onToken]);
+  }, [action, language, onError, onToken]);
 
   return <div ref={containerRef} aria-label={t(language, 'captcha.label')} />;
 }

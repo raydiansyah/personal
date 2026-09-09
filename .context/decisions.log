@@ -1,0 +1,13 @@
+# Decision log
+
+Purpose: Record material architecture and verification decisions for the Turnstile integration.
+Users: Public contact form users and the site owner.
+Dependencies: Cloudflare Turnstile, React client, Supabase Edge Function, Resend.
+Contents: Turnstile is enabled on the public contact surfaces, with canonical server-side Siteverify.
+Side effects: The Edge Function rejects invalid/replayed CAPTCHA tokens before database or email writes.
+
+2026-09-09 — Existing-widget integration
+- Reused the existing Turnstile widget and contact Edge Function instead of adding a new transport.
+- Stored the provided site key in the local frontend environment; the server secret remains a Supabase secret.
+- Added stable action and deployment-hostname checks to Siteverify, plus client widget reset after attempts.
+- Verification plan: typecheck, build, focused tests if present, and inspect secret/config state without printing secret values.

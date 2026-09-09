@@ -280,6 +280,7 @@ export function AdminApp() {
           />
           <TurnstileWidget
             key={captchaKey}
+            action="login"
             onToken={setCaptchaToken}
             onError={setStatus}
           />

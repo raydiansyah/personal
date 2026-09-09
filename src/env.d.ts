@@ -24,7 +24,7 @@ interface Window {
   dataLayer?: unknown[];
   gtag?: (...args: unknown[]) => void;
   turnstile?: {
-    render: (container: HTMLElement, options: { sitekey: string; theme?: 'auto' | 'light' | 'dark'; callback: (token: string) => void; 'expired-callback'?: () => void; 'error-callback'?: () => void }) => string | number;
+    render: (container: HTMLElement, options: { sitekey: string; action?: string; theme?: 'auto' | 'light' | 'dark'; callback: (token: string) => void; 'expired-callback'?: () => void; 'error-callback'?: () => void }) => string | number;
     remove?: (widgetId: string | number) => void;
   };
 }

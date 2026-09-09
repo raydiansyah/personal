@@ -2,7 +2,7 @@
  * Module: Contact notification Edge Function
  * Purpose: Validate CAPTCHA-protected public inquiries, enforce a small abuse guard, persist the row, and notify the owner with bounded retry
  * Used by: src/lib/contact.ts through Supabase Functions
- * Dependencies: Supabase PostgREST endpoint; Resend HTTP API; Cloudflare Turnstile Siteverify; TURNSTILE_ENABLED; Edge Runtime server secrets
+ * Dependencies: Supabase PostgREST endpoint; Resend HTTP API; Cloudflare Turnstile Siteverify; TURNSTILE_ENABLED; TURNSTILE_HOSTNAMES; Edge Runtime server secrets
  * Public functions: Deno.serve handler
  * Side effects: Writes pesan_kontak and sends one transactional email
  */
@@ -70,15 +70,21 @@ function isTurnstileEnabled() {
 async function verifyCaptcha(token: string | undefined, remoteIp: string) {
   if (!isTurnstileEnabled()) return true
   const secret = Deno.env.get('TURNSTILE_SECRET_KEY')
-  if (!secret || !token) return false
-  const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret, response: token, remoteip: remoteIp }),
-  })
-  if (!response.ok) return false
-  const result = await response.json() as { success?: boolean }
-  return result.success === true
+  const hostnames = new Set((Deno.env.get('TURNSTILE_HOSTNAMES') ?? '').split(',').map((hostname) => hostname.trim()).filter(Boolean))
+  if (!secret || !token || token.length > 2048 || hostnames.size === 0) return false
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      signal: AbortSignal.timeout(10_000),
+      body: new URLSearchParams({ secret, response: token, remoteip: remoteIp }),
+    })
+    if (!response.ok) return false
+    const result = await response.json() as { success?: boolean; action?: string; hostname?: string }
+    return result.success === true && result.action === 'contact' && typeof result.hostname === 'string' && hostnames.has(result.hostname)
+  } catch {
+    return false
+  }
 }
 
 async function persistContact(payload: Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload) {
