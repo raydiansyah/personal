@@ -1251,6 +1251,7 @@ function SlideView({
   async function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (slideSaving) return;
+    const formElement = event.currentTarget;
     const validationError = validateUploadFile(file, SLIDE_RULE);
     if (validationError) {
       setFileError(validationError);
@@ -1258,7 +1259,7 @@ function SlideView({
     }
     setSlideSaving(true);
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formElement);
       const requestedSlug = String(form.get("slug") ?? "").trim() || slugify(title);
       const slugError = validateSlideSlug(requestedSlug, data);
       if (slugError) {
@@ -1306,7 +1307,7 @@ function SlideView({
       setStatus(createdAccessCode ? `Slide added. Access code: ${createdAccessCode}` : "Slide added.");
       setCreateSlideModal(false);
       setCreateNewMaterial(false);
-      event.currentTarget.reset();
+      formElement.reset();
     } catch (error) {
       setStatus(
         error instanceof Error ? error.message : "Failed to add slide.",
