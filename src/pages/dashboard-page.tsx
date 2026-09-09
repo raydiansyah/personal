@@ -2,7 +2,7 @@
  * Module: Owner dashboard pages
  * Purpose: Provide a consistent, responsive, searchable content-management dashboard with accessible CRUD feedback
  * Used by: TanStack dashboard routes under /dashboard
- * Dependencies: React, TanStack Router, Supabase owner data service, shared upload validation, slide preview component, dashboard.css
+ * Dependencies: React, TanStack Router, Supabase owner data service, shared upload validation, slide preview component, local shadcn-style UI primitives, dashboard.css
  * Public functions: DashboardApp()
  * Side effects: Reads/writes owner content, persists theme/sidebar preferences, locks body scroll for overlays, and performs dashboard navigation
  */
@@ -18,6 +18,8 @@ import {
 } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { SlidePreview } from "../components/slide-preview";
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import {
   createExperience,
   createMaterial,
@@ -259,16 +261,16 @@ function MetricCard({
   icon: string;
 }) {
   return (
-    <article className="dashboard-metric">
-      <div className="dashboard-metric-top">
+    <Card className="dashboard-metric">
+      <CardHeader className="dashboard-metric-top">
         <span>{label}</span>
         <span className="dashboard-icon-wrap">
           <DashboardIcon name={icon} />
         </span>
-      </div>
-      <strong>{value}</strong>
-      <small>{note}</small>
-    </article>
+      </CardHeader>
+      <CardTitle>{value}</CardTitle>
+      <CardContent><small>{note}</small></CardContent>
+    </Card>
   );
 }
 
@@ -471,14 +473,16 @@ function DashboardModal({
             <p className="dashboard-kicker">Content editor</p>
             <h2 id={titleId}>{title}</h2>
           </div>
-          <button
+          <Button
             className="dashboard-modal-close"
+            variant="ghost"
+            size="icon"
             type="button"
             aria-label="Close editor"
             onClick={onClose}
           >
             <DashboardIcon name="close" />
-          </button>
+          </Button>
         </div>
         {children}
       </section>
@@ -1155,6 +1159,7 @@ function SlideView({
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [createSlideModal, setCreateSlideModal] = useState(false);
   const [shareMaterial, setShareMaterial] = useState<Material | null>(null);
+  const [showMaterialCode, setShowMaterialCode] = useState(false);
   const [materialAccessMode, setMaterialAccessMode] = useState("none");
   const [materialAccessCode, setMaterialAccessCode] = useState("");
   const [materialExpiry, setMaterialExpiry] = useState("");
@@ -1200,6 +1205,7 @@ function SlideView({
     const material = materials.find((item) => item.id === activeMaterialId) ?? null;
     if (!material) return;
     setShareMaterial(material);
+    setShowMaterialCode(false);
     setMaterialAccessMode(material.akses_kode ? "custom" : "none");
     setMaterialAccessCode(material.akses_kode ?? "");
     setMaterialExpiry(material.akses_berakhir_pada ? new Date(material.akses_berakhir_pada).toISOString().slice(0, 16) : "");
@@ -1208,6 +1214,7 @@ function SlideView({
     const material = materials.find((item) => item.id === id) ?? null;
     if (!material) return;
     setShareMaterial(material);
+    setShowMaterialCode(false);
     setMaterialAccessMode(material.akses_kode ? "custom" : "none");
     setMaterialAccessCode(material.akses_kode ?? "");
     setMaterialExpiry(material.akses_berakhir_pada ? new Date(material.akses_berakhir_pada).toISOString().slice(0, 16) : "");
@@ -1546,7 +1553,7 @@ function SlideView({
           disabled={!materials.length}
           onClick={openMaterialShare}
         >
-          Share material
+          Access & share
         </button>
         <button
           className="dashboard-bulk-action"
@@ -1876,7 +1883,7 @@ function SlideView({
         </DashboardModal>
       )}
       {shareMaterial && (
-        <DashboardModal title="Share material" onClose={() => setShareMaterial(null)}>
+        <DashboardModal title="Access & share material" onClose={() => setShareMaterial(null)}>
           <form className="dashboard-modal-form" onSubmit={saveMaterialAccess}>
             <label>
               Material
@@ -1897,7 +1904,7 @@ function SlideView({
               </select>
             </label>
             {materialAccessMode === "custom" && <label>Custom code<input value={materialAccessCode} onChange={(event) => setMaterialAccessCode(event.target.value)} minLength={4} maxLength={64} required /></label>}
-            {shareMaterial.akses_kode && <label>Current code<div className="dashboard-copy-field"><input value={shareMaterial.akses_kode} readOnly /><button className="dashboard-table-action" type="button" onClick={() => void copyMaterialCode()}>Copy</button></div></label>}
+            {shareMaterial.akses_kode && <label>Current code<div className="dashboard-copy-field"><input type={showMaterialCode ? "text" : "password"} value={shareMaterial.akses_kode} readOnly /><button className="dashboard-table-action" type="button" onClick={() => setShowMaterialCode((value) => !value)}>{showMaterialCode ? "Hide" : "View"}</button><button className="dashboard-table-action" type="button" onClick={() => void copyMaterialCode()}>Copy</button></div></label>}
             <label>Expiry (optional)<input type="datetime-local" value={materialExpiry} onChange={(event) => setMaterialExpiry(event.target.value)} /></label>
             <p className="dashboard-modal-note">Without an expiry, the material link remains available until the access code is changed or removed.</p>
             <div className="dashboard-modal-actions"><button className="dashboard-table-action" type="button" onClick={() => setShareMaterial(null)}>Cancel</button><button className="dashboard-primary-action" type="submit" disabled={slideSaving}>{slideSaving ? "Saving…" : "Save access settings"} <DashboardIcon name="arrow" /></button></div>
