@@ -88,8 +88,8 @@ async function verifyCaptcha(token: string | undefined, remoteIp: string) {
 }
 
 async function persistContact(payload: Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload) {
-  const secretKey = Deno.env.get('SUPABASE_SECRET_KEY')
-  if (!secretKey) throw new Error('SUPABASE_SECRET_KEY is not configured')
+  const secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!secretKey) throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured')
   const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/pesan_kontak`, {
     method: 'POST',
     headers: { apikey: secretKey, Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
@@ -123,5 +123,8 @@ Deno.serve(async (request) => {
   if (!payload.nama?.trim() || !payload.email?.trim() || !payload.pesan?.trim()) return json({ error: 'missing_required_fields' }, 400)
   if (payload.nama.length > 160 || payload.email.length > 320 || payload.pesan.length > 5000) return json({ error: 'field_too_long' }, 400)
   const normalized = { ...payload, nama: payload.nama.trim(), email: payload.email.trim(), pesan: payload.pesan.trim() }
-  try { await persistContact(normalized as Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload); await notifyOwner(normalized as Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload); return json({ ok: true }, 201) } catch { console.error('contact submission failed'); return json({ error: 'contact_submission_failed' }, 502) }
+  const inquiry = normalized as Required<Pick<ContactPayload, 'nama' | 'email' | 'pesan'>> & ContactPayload
+  try { await persistContact(inquiry) } catch { console.error('contact persistence failed'); return json({ error: 'contact_submission_failed' }, 502) }
+  try { await notifyOwner(inquiry) } catch { console.error('owner notification failed') }
+  return json({ ok: true }, 201)
 })
